@@ -16,6 +16,8 @@
 	"strike_power_loss": 0.2,
 	"knuckle_radius": 0.15,
 	"knuckle_max_spin": 1.0,
+	"scatter_base": 1.3,
+	"scatter_mishit": 1.0,
 	"aftertouch_enabled": 1,
 	"aftertouch_limit": 0.2,
 	"aftertouch_full_drag": 0.25,

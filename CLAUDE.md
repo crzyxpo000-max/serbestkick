@@ -11,8 +11,10 @@ Android için 3D, gerçekçi görünümlü serbest vuruş oyunu. Motor Godot 4.6
   havada falso) ve testleri. Ana sahne gri kutulu antrenman sahasıdır: hedef halkası, rastgele konum, isabet sayacı.
 - **Aşama 3 (his ayarı):** kullanıcının telefon geri bildirimiyle güç, falso ve nişan değerleri ayarlandı ("şimdi iyi").
 - **Aşama 4 (kaleci ve baraj) tamam:** `scripts/keeper/` ve testleri. Antrenman sahasında baraj (mesafeye göre 2–4 kişi)
-  ve kaleci var. Kullanıcının telefonda denemesi bekleniyor.
-- Sıradaki: Aşama 5, krampon (dört özellik, dört tip, seçim ekranı). Değerler `data/` altında durmalı.
+  ve kaleci var; zorluk kullanıcının geri bildirimiyle ayarlandı.
+- **Aşama 5 (krampon) tamam:** `scripts/boots/boot.gd`, `data/boots.json` (4 tip), seçim ekranı ve testleri.
+  Kullanıcının telefonda denemesi bekleniyor.
+- Sıradaki: Aşama 6, maç senaryosu (hızlı akan maç, oyuna alınma, baskı, sonuç) → `scripts/match/`.
 
 ## Komutlar
 
@@ -51,6 +53,15 @@ düzlemini nerede kesiyorsa falsosuz top oraya gider. Yay sağa bombeliyse top s
 noktası: alt = alt falso ve ek yükseliş, üst = üst falso, sağ = sola kıvrılır, tam orta = en sert ve dönüşsüz
 (yalpalar). Girdi `scripts/main.gd` içinde `InputEventScreenTouch/Drag` ile işlenir (fare dokunmaya çevrilir);
 çizimler `scripts/ui/practice_hud.gd`. Ekran koordinatları görünüm alanı birimindedir (720 yükseklik).
+
+## Krampon (`scripts/boots/`, `data/boots.json`)
+
+Dört özellik vuruş hesabına `ShotBuilder.build(..., boot, noise, wet)` içinde girer: `power` en yüksek çıkış hızı,
+`curl` en yüksek yan dönüş (vuruş noktası falsosunu da ölçekler), `accuracy` rastgele nişan sapmasının affedilen
+oranı, `sweet_spot` vuruş noktasının güç ve isabet kaybetmeden kayabileceği alan. Ayrıca `aftertouch` (havada falso
+sınırı) ve `wet_penalty` (ıslak sahada isabet kaybı). `noise` sahneden gelir (birim rastgele sapma); testlerde sıfırdır.
+`boot` verilmezse `Boot.neutral(cp)` kullanılır (hatasız). Seçim ekranı `scripts/ui/boot_picker.gd`; krampon yalnızca
+vuruştan önce değişir.
 
 ## Kaleci ve baraj (`scripts/keeper/`)
 

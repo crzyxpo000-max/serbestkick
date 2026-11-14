@@ -4,12 +4,14 @@ extends RefCounted
 ## Yönünü tersine çeviremez; dönüşsüz topa etki etmez.
 
 var _cp: ControlParams
+var limit := 0.2   ## kramponla değişir
 var _factor := 1.0
 var _start_distance := 0.0
 
 
 func _init(cp: ControlParams) -> void:
 	_cp = cp
+	limit = cp.aftertouch_limit
 
 
 func begin(kick: BallState) -> void:
@@ -44,6 +46,6 @@ func apply(sim: BallSimulator, drag: Vector2) -> void:
 	if curve_dir.length() < 1e-3:
 		return
 	var amount := clampf(drag.dot(curve_dir.normalized()) / _cp.aftertouch_full_drag, -1.0, 1.0)
-	var target := 1.0 + _cp.aftertouch_limit * amount
+	var target := 1.0 + limit * amount
 	sim.state.spin *= target / _factor
 	_factor = target

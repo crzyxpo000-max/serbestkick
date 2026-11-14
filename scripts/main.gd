@@ -29,6 +29,9 @@ var _kp := KeeperParams.load_default()
 var _sim := BallSimulator.new(_pp)
 var _wall := Wall.new(_kp)
 var _keeper := Keeper.new(_kp)
+var _boots := Boot.load_all()
+var _boot: Boot
+var _picker: BootPicker
 var _wall_nodes: Array[MeshInstance3D] = []
 var _keeper_body: MeshInstance3D
 var _keeper_hands: MeshInstance3D
@@ -82,6 +85,17 @@ func _ready() -> void:
 	button.position = Vector2(16, 12)
 	button.pressed.connect(_new_spot)
 	$UI.add_child(button)
+	var boot_button := Button.new()
+	boot_button.text = "Krampon"
+	boot_button.add_theme_font_size_override("font_size", 22)
+	boot_button.position = Vector2(16, 64)
+	boot_button.pressed.connect(_open_picker)
+	$UI.add_child(boot_button)
+	_picker = BootPicker.new(_boots)
+	_picker.visible = false
+	_picker.picked.connect(_pick_boot)
+	$UI.add_child(_picker)
+	_pick_boot(_boots[0] if not _boots.is_empty() else Boot.neutral(_cp))
 	_place_target()
 	_reset_shot()
 
@@ -167,7 +181,9 @@ func _shoot() -> void:
 	if not swipe.valid:
 		_info.text = "Daha uzun kaydır"
 		return
-	var kick := ShotBuilder.build(swipe, _goal_plane_point(swipe.launch_point), _spot, _hud.strike, _cp, _pp)
+	var noise := Vector2(_rng.randfn(), _rng.randfn()).limit_length(2.5)
+	var kick := ShotBuilder.build(swipe, _goal_plane_point(swipe.launch_point), _spot, _hud.strike, _cp, _pp,
+			_boot, noise)
 	_sim.kick(kick)
 	_aftertouch.begin(kick)
 	_shots += 1
@@ -233,6 +249,21 @@ func _reset_shot() -> void:
 	_hud.show_disc = true
 	_info.text = "%d m · vuruş noktasını soldan seç, kaleye doğru kaydır" % roundi(_spot.distance_to(Vector3.ZERO))
 	_update_title()
+
+
+## Krampon yalnızca vuruştan önce değiştirilebilir.
+func _open_picker() -> void:
+	if _phase != Phase.AIM or _touch != Touch.NONE:
+		return
+	_picker.select(_boot)
+	_picker.visible = true
+
+
+func _pick_boot(boot: Boot) -> void:
+	_boot = boot
+	_aftertouch.limit = boot.aftertouch
+	_hud.boot = boot
+	_picker.visible = false
 
 
 func _new_spot() -> void:
