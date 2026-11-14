@@ -1,0 +1,5 @@
+[
+	{"name": "Bölge Ligi", "teams": ["Kıyıspor", "Dağyolu FK", "Yeşilova", "Demirkapı SK", "Altınçay", "Bozkır Gücü", "Limanyolu", "Çınarlı SK"]},
+	{"name": "İkinci Lig", "teams": ["Akçakale", "Karasu Birlik", "Taşköprü SK", "Gündoğdu FK", "Yıldıztepe", "Ovacık Spor", "Sarıkaya", "Denizkent"]},
+	{"name": "Birinci Lig", "teams": ["Başkent Yıldızı", "Körfez Atletik", "Ulukale SK", "Boğaziçi Birlik", "Altınova FK", "Kuzey Rüzgarı", "Doruk Spor", "Mavişehir"]}
+]

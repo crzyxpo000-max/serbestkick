@@ -21,6 +21,7 @@ var accuracy := 1.0      ## 0–1, kaydırma hatasının affedilen oranı
 var sweet_spot := 0.0    ## 0–1, vuruş noktasının güç ve isabet kaybetmeden kayabileceği alan
 var aftertouch := 0.2    ## havada falsonun sınırı (oran)
 var wet_penalty := 0.0   ## ıslak sahada isabetten düşen miktar
+var price := 0           ## kariyerde satın alma bedeli
 
 
 ## Kramponsuz hesap: kontrol ayarlarındaki sınırlar, hatasız vuruş.
@@ -48,6 +49,13 @@ static func load_all() -> Array[Boot]:
 		for entry: Dictionary in parsed:
 			boots.append(from_dict(entry))
 	return boots
+
+
+func duplicate_boot() -> Boot:
+	var copy := Boot.new()
+	for key: String in ["id", "name", "type", "power", "curl", "accuracy", "sweet_spot", "aftertouch", "wet_penalty", "price"]:
+		copy.set(key, get(key))
+	return copy
 
 
 ## Özelliğin 0–1 arası gösterim değeri.

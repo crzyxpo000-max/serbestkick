@@ -24,6 +24,13 @@ var derby_chance := 0.2
 var final_chance := 0.1
 var filler_count := 6.0         ## maç başına ara spiker yazısı
 
+var trust_none_low := 0.4       ## hoca güveni 0 iken hiç pozisyon verilmeme olasılığı
+var trust_none_high := 0.03     ## güven 100 iken
+var trust_two_low := 0.05       ## güven 0 iken iki pozisyon olasılığı
+var trust_two_high := 0.5
+var trust_distance_low := 24.0  ## m, güven 0 iken en uzak pozisyon (yalnızca kolay vuruşlar)
+var trust_angle_low := 12.0     ## derece
+
 var seconds_per_minute := 0.28  ## hızlı akışta bir maç dakikası kaç saniye sürer
 var event_pause := 1.8          ## s, bir olaydan sonra bekleme
 

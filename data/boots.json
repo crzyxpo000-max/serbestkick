@@ -1,21 +1,21 @@
 [
 	{
-		"id": "baslangic", "name": "Başlangıç", "type": "dengeli",
+		"id": "baslangic", "name": "Başlangıç", "type": "dengeli", "price": 0,
 		"power": 30.5, "curl": 7.5, "accuracy": 0.6, "sweet_spot": 0.45,
 		"aftertouch": 0.2, "wet_penalty": 0.05
 	},
 	{
-		"id": "gulle", "name": "Gülle", "type": "guc",
+		"id": "gulle", "name": "Gülle", "type": "guc", "price": 600,
 		"power": 34.0, "curl": 6.0, "accuracy": 0.3, "sweet_spot": 0.3,
 		"aftertouch": 0.15, "wet_penalty": 0.15
 	},
 	{
-		"id": "cetvel", "name": "Cetvel", "type": "kontrol",
+		"id": "cetvel", "name": "Cetvel", "type": "kontrol", "price": 600,
 		"power": 28.0, "curl": 7.0, "accuracy": 0.9, "sweet_spot": 0.7,
 		"aftertouch": 0.2, "wet_penalty": 0.05
 	},
 	{
-		"id": "yay", "name": "Yay", "type": "falso",
+		"id": "yay", "name": "Yay", "type": "falso", "price": 600,
 		"power": 29.0, "curl": 10.5, "accuracy": 0.55, "sweet_spot": 0.4,
 		"aftertouch": 0.25, "wet_penalty": 0.1
 	}

@@ -24,22 +24,44 @@ var commentary := {}
 var _player_goals: Array[int] = []
 
 
+## setup verilmezse rastgele iki takım, rastgele önem (hızlı maç). Kariyerde fikstür ve hoca güveni setup ile gelir.
 static func generate(rng: RandomNumberGenerator, teams: Array, p_commentary: Dictionary,
-		mp: MatchParams) -> Match:
+		mp: MatchParams, setup: MatchSetup = null) -> Match:
 	var m := Match.new()
 	m.params = mp
 	m.commentary = p_commentary
-	var first := rng.randi_range(0, teams.size() - 1)
-	var second := (first + rng.randi_range(1, teams.size() - 1)) % teams.size()
-	m.us = teams[first]
-	m.them = teams[second]
-	m.home = rng.randf() < 0.5
-
-	var roll := rng.randf()
-	if roll < mp.final_chance:
-		m.importance = Importance.FINAL
-	elif roll < mp.final_chance + mp.derby_chance:
-		m.importance = Importance.DERBY
+	var roll := 0.0
+	var our_xg := mp.our_xg
+	var their_xg := mp.their_xg
+	var none_chance := mp.free_kicks_none
+	var two_chance := mp.free_kicks_two
+	var distance_max := mp.distance_max
+	var angle_max := mp.angle_max
+	if setup == null:
+		var first := rng.randi_range(0, teams.size() - 1)
+		var second := (first + rng.randi_range(1, teams.size() - 1)) % teams.size()
+		m.us = teams[first]
+		m.them = teams[second]
+		m.home = rng.randf() < 0.5
+		roll = rng.randf()
+		if roll < mp.final_chance:
+			m.importance = Importance.FINAL
+		elif roll < mp.final_chance + mp.derby_chance:
+			m.importance = Importance.DERBY
+	else:
+		m.us = setup.us
+		m.them = setup.them
+		m.home = setup.home
+		m.importance = setup.importance
+		our_xg *= setup.our_strength / setup.their_strength
+		their_xg *= setup.their_strength / setup.our_strength
+		if setup.trust >= 0.0:
+			# Hoca güveni: güven düşükse az ve kolay pozisyon, yüksekse çok ve her mesafeden.
+			var t := clampf(setup.trust / 100.0, 0.0, 1.0)
+			none_chance = lerpf(mp.trust_none_low, mp.trust_none_high, t)
+			two_chance = lerpf(mp.trust_two_low, mp.trust_two_high, t)
+			distance_max = lerpf(mp.trust_distance_low, mp.distance_max, t)
+			angle_max = lerpf(mp.trust_angle_low, mp.angle_max, t)
 
 	roll = rng.randf()
 	var wind_speed := 0.0
@@ -55,18 +77,18 @@ static func generate(rng: RandomNumberGenerator, teams: Array, p_commentary: Dic
 
 	var used := {}
 	for minute in range(1, LENGTH + 1):
-		if rng.randf() < mp.our_xg / LENGTH:
+		if rng.randf() < our_xg / LENGTH:
 			m.events.append(MatchEvent.make(minute, MatchEvent.Kind.GOAL_US, m._line(rng, "goal_us")))
 			used[minute] = true
-		if rng.randf() < mp.their_xg / LENGTH:
+		if rng.randf() < their_xg / LENGTH:
 			m.events.append(MatchEvent.make(minute, MatchEvent.Kind.GOAL_THEM, m._line(rng, "goal_them")))
 			used[minute] = true
 
 	roll = rng.randf()
 	var count := 1
-	if roll < mp.free_kicks_none:
+	if roll < none_chance:
 		count = 0
-	elif roll < mp.free_kicks_none + mp.free_kicks_two:
+	elif roll < none_chance + two_chance:
 		count = 2
 	var minutes: Array[int] = []
 	var attempts := 0
@@ -84,8 +106,8 @@ static func generate(rng: RandomNumberGenerator, teams: Array, p_commentary: Dic
 	for minute in minutes:
 		var kick := FreeKick.new()
 		kick.minute = minute
-		var distance := rng.randf_range(mp.distance_min, mp.distance_max)
-		var angle := deg_to_rad(rng.randf_range(-mp.angle_max, mp.angle_max))
+		var distance := rng.randf_range(mp.distance_min, distance_max)
+		var angle := deg_to_rad(rng.randf_range(-angle_max, angle_max))
 		kick.spot = Vector3(sin(angle) * distance, 0.0, cos(angle) * distance)
 		kick.wall_count = Wall.default_count(kick.spot)
 		kick.keeper_forward = rng.randf() < mp.forward_keeper_chance

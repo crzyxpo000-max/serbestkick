@@ -181,6 +181,11 @@ func boot() -> Boot:
 	return _boot
 
 
+## Kramponu seçim ekranı olmadan ayarlar (kariyerde: oyuncu gelişimi eklenmiş krampon).
+func use_boot(new_boot: Boot) -> void:
+	_pick_boot(new_boot)
+
+
 func _show_practice_ui(shown: bool) -> void:
 	for control in _practice_buttons:
 		control.visible = shown

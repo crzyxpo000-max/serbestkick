@@ -15,8 +15,10 @@ Android için 3D, gerçekçi görünümlü serbest vuruş oyunu. Motor Godot 4.6
 - **Aşama 5 (krampon) tamam:** `scripts/boots/boot.gd`, `data/boots.json` (4 tip), seçim ekranı ve testleri.
 - **Aşama 6 (maç senaryosu) tamam:** `scripts/match/` ve testleri. Menü (Maç / Antrenman), maç öncesi krampon seçimi,
   hızlı akan maç, oyuna alınma, tek vuruş, baskı, ağır çekim tekrar, maç sonu. Planın "ilk oynanabilir sürümü" budur.
-  Kullanıcının telefonda denemesi bekleniyor.
-- Sıradaki: Aşama 7, kariyer (hoca güveni, sezon, ün, gelişim, kayıt) → `scripts/career/`.
+- **Aşama 7 (kariyer) tamam:** `scripts/career/` ve testleri. Hoca güveni, sezon (14 lig + 3 kupa maçı), puan durumu,
+  ün, prim, mağaza (krampon + oyuncu gelişimi), sezon sonu (yükselme, teklif), kayıt (`user://career.json`).
+- Kullanıcı 6. aşamadan sonra "teyit almadan bitişe kadar devam et, kontrolü sonda yapacağım" dedi; 6–10. aşamalar
+  telefonda denenmeden yazıldı.
 
 ## Komutlar
 
@@ -97,6 +99,15 @@ Ayar sınıflarının ortak tabanı `scripts/param_set.gd` (`ParamSet`).
 
 Burada (bulut) tarayıcı denemesi yazılımsal görüntülemeyle saniyede ~2 kare çalışır; kaydırma ve maç akışını denemek
 için geçici olarak gevşetilmiş ayarlarla ayrı bir derleme alınır, bu ayarlar depoya girmez.
+
+## Kariyer (`scripts/career/`)
+
+`Career` kuralları ve durumu tutar; ekranları `MatchFlow` çizer. Ligler `data/leagues.json` (3 lig × 8 takım),
+ayarlar `data/career.json`. Sezon çift devreli lig ve üç turlu kupadır; ilk iki takım üst lige çıkar, yükselemeyen
+ama ünü yeten oyuncuya üst ligden teklif gelir. Hoca güveni (0–100) `MatchSetup.trust` ile maç üretimine girer:
+düşükken az ve yakın pozisyon, yüksekken çok ve her mesafeden. Oyuncu gelişimi `effective_boot` (güç, falso, isabet)
+ve `felt_pressure` (soğukkanlılık) ile vuruşa yansır. Her maçtan ve satın almadan sonra kaydedilir.
+Kayıt biçimi değişirse `to_dict`'teki `version` artırılır ve `from_dict` eski kaydı açmaya devam etmelidir.
 
 Eksenler: kale çizgisi z = 0, kale ortası x = 0, vuruş +z'den -z'ye, +x vurucunun sağı. Yan falso artı = sağa
 kıvrılır; üst falso artı = top dalar. Vector3 tek duyarlıklıdır: testlerde 1e-6'dan sıkı tolerans kullanma.

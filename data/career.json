@@ -1,0 +1,23 @@
+{
+	"_aciklama": "Kariyer ayarları. Anahtarlar scripts/career/career_params.gd alanlarıyla aynıdır.",
+	"start_trust": 50.0,
+	"trust_goal": 10.0,
+	"trust_clutch": 6.0,
+	"trust_miss": 6.0,
+	"clutch_pressure": 0.6,
+	"bonus_appearance": 50.0,
+	"bonus_goal": 150.0,
+	"bonus_win": 100.0,
+	"tier_bonus_step": 0.6,
+	"fame_goal": 3.0,
+	"fame_champion": 15.0,
+	"fame_top_two": 8.0,
+	"offer_fame": 25.0,
+	"skill_cost": 300.0,
+	"skill_max": 5.0,
+	"skill_power": 0.4,
+	"skill_curl": 0.4,
+	"skill_accuracy": 0.05,
+	"skill_composure": 0.12,
+	"strength_spread": 0.2
+}
