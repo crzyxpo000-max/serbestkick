@@ -6,7 +6,9 @@ Android için 3D, gerçekçi görünümlü serbest vuruş oyunu. Motor Godot 4.6
 ## Durum
 
 - **Aşama 0 (kurulum) tamam:** proje iskeleti, boş sahne, test koşucusu, otomatik derleme (web + debug APK).
-- Sıradaki: Aşama 1, top fiziği (`scripts/physics/`) ve testleri.
+- **Aşama 1 (top fiziği) tamam:** `scripts/physics/` (uçuş, sekme, yuvarlanma, direk, file, gol kararı) ve testleri.
+  Ana sahne şimdilik `data/demo_shots.json` içindeki hazır vuruşları sırayla oynatan bir gösterimdir.
+- Sıradaki: Aşama 2, kontrol (kaydırarak şut, vuruş noktası, sınırlı aftertouch) → `scripts/control/`.
 
 ## Komutlar
 
@@ -18,6 +20,21 @@ godot --headless --path . --export-release Web build/web/index.html
 
 GitHub Actions (`.github/workflows/build.yml`) her `main` gönderiminde testleri çalıştırır, web çıktısını
 GitHub Pages'e yayınlar ve debug APK'yı iş çıktısı olarak ekler.
+
+## Fizik (`scripts/physics/`)
+
+| Dosya | İçerik |
+| --- | --- |
+| `physics_params.gd` | Ayar değerleri; varsayılanların üzerine `data/physics.json` yazılır |
+| `ball_state.gd` | Konum, hız, dönüş (rad/s); `from_kick(konum, hız, yükseliş, yön, yan falso, üst falso)` |
+| `ball_flight.gd` | İvme (yerçekimi, direnç, Magnus, rüzgar) ve RK4 adımı, dönüş kaybı |
+| `ball_collision.gd` | Sürtünmeli sekme (hız ↔ dönüş aktarımı) |
+| `goal_frame.gd` | Kale ölçüleri, direk doğru parçaları |
+| `ball_simulator.gd` | Bir vuruşun tamamı: sabit 1/240 sn adım, sonuç (`GOAL`, `OUT`, `STOPPED`), çizgi geçiş noktası |
+| `pitch_conditions.gd` | Rüzgar ve ıslak saha |
+
+Eksenler: kale çizgisi z = 0, kale ortası x = 0, vuruş +z'den -z'ye, +x vurucunun sağı. Yan falso artı = sağa
+kıvrılır; üst falso artı = top dalar. Vector3 tek duyarlıklıdır: testlerde 1e-6'dan sıkı tolerans kullanma.
 
 ## Kurallar
 

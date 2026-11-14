@@ -1,0 +1,23 @@
+{
+	"_aciklama": "Top fiziği ayarları. Anahtarlar scripts/physics/physics_params.gd alanlarıyla aynıdır.",
+	"gravity": 9.81,
+	"air_density": 1.225,
+	"mass": 0.43,
+	"radius": 0.11,
+	"drag_coefficient": 0.2,
+	"lift_slope": 0.8,
+	"lift_max": 0.3,
+	"spin_decay": 0.15,
+	"ground_restitution": 0.6,
+	"ground_friction": 0.5,
+	"rolling_resistance": 0.1,
+	"wet_restitution": 0.55,
+	"wet_friction": 0.2,
+	"wet_rolling_resistance": 0.07,
+	"roll_threshold": 0.3,
+	"rest_speed": 0.05,
+	"post_restitution": 0.65,
+	"post_friction": 0.3,
+	"net_depth": 2.0,
+	"net_damping": 6.0
+}
