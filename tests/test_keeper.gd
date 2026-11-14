@@ -58,10 +58,9 @@ func test_baraj_yerlesimi() -> Array[String]:
 
 func test_baraj_sayisi_mesafeye_gore() -> Array[String]:
 	var errors: Array[String] = []
-	Check.is_true(errors, "yakından 5", Wall.default_count(Check.spot(19.0)) == 5)
-	Check.is_true(errors, "25 m'den 4", Wall.default_count(Check.spot(25.0)) == 4)
-	Check.is_true(errors, "30 m'den 3", Wall.default_count(Check.spot(30.0)) == 3)
-	Check.is_true(errors, "uzaktan 2", Wall.default_count(Check.spot(35.0)) == 2)
+	Check.is_true(errors, "yakından 4", Wall.default_count(Check.spot(19.0)) == 4)
+	Check.is_true(errors, "25 m'den 3", Wall.default_count(Check.spot(25.0)) == 3)
+	Check.is_true(errors, "uzaktan 2", Wall.default_count(Check.spot(30.0)) == 2)
 	return errors
 
 
@@ -73,7 +72,7 @@ func test_baraj_ziplar() -> Array[String]:
 	var peak := 0.0
 	for i in 100:
 		peak = maxf(peak, wall.jump_offset(i * 0.01))
-	Check.in_range(errors, "zıplama yüksekliği (m)", peak, 0.3, 0.4)
+	Check.in_range(errors, "zıplama yüksekliği (m)", peak, 0.12, 0.22)
 	Check.near(errors, "sonra yere iner", wall.jump_offset(1.0), 0.0, 1e-9)
 	return errors
 

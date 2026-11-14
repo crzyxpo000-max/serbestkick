@@ -10,7 +10,7 @@ Android için 3D, gerçekçi görünümlü serbest vuruş oyunu. Motor Godot 4.6
 - **Aşama 2 (kontrol) tamam:** `scripts/control/` (kaydırma ölçümü, vuruş kurulumu, vuruş noktası, dönüşsüz vuruş,
   havada falso) ve testleri. Ana sahne gri kutulu antrenman sahasıdır: hedef halkası, rastgele konum, isabet sayacı.
 - **Aşama 3 (his ayarı):** kullanıcının telefon geri bildirimiyle güç, falso ve nişan değerleri ayarlandı ("şimdi iyi").
-- **Aşama 4 (kaleci ve baraj) tamam:** `scripts/keeper/` ve testleri. Antrenman sahasında baraj (mesafeye göre 2–5 kişi)
+- **Aşama 4 (kaleci ve baraj) tamam:** `scripts/keeper/` ve testleri. Antrenman sahasında baraj (mesafeye göre 2–4 kişi)
   ve kaleci var. Kullanıcının telefonda denemesi bekleniyor.
 - Sıradaki: Aşama 5, krampon (dört özellik, dört tip, seçim ekranı). Değerler `data/` altında durmalı.
 

@@ -16,11 +16,9 @@ func _init(p_params: KeeperParams = null) -> void:
 ## Mesafeye göre barajdaki oyuncu sayısı.
 static func default_count(spot: Vector3) -> int:
 	var distance := Vector2(spot.x, spot.z).length()
-	if distance < 22.0:
-		return 5
-	if distance < 28.0:
+	if distance < 21.0:
 		return 4
-	if distance < 33.0:
+	if distance < 28.0:
 		return 3
 	return 2
 
