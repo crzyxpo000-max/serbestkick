@@ -36,6 +36,7 @@ var _wall_nodes: Array[MeshInstance3D] = []
 var _keeper_body: MeshInstance3D
 var _keeper_hands: MeshInstance3D
 var _aftertouch := Aftertouch.new(_cp)
+var _assist := AimAssist.new(_cp)
 var _rng := RandomNumberGenerator.new()
 var _hud: PracticeHud
 var _target_node: MeshInstance3D
@@ -70,6 +71,7 @@ func _ready() -> void:
 	_build_target()
 	_build_keeper()
 	_sim.wall = _wall
+	_assist.wall = _wall
 	_sim.keeper = _keeper
 	_trail_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_trail_material.albedo_color = Color(1.0, 0.85, 0.2)
@@ -183,7 +185,7 @@ func _shoot() -> void:
 		return
 	var noise := Vector2(_rng.randfn(), _rng.randfn()).limit_length(2.5)
 	var kick := ShotBuilder.build(swipe, _goal_plane_point(swipe.launch_point), _spot, _hud.strike, _cp, _pp,
-			_boot, noise)
+			_boot, noise, false, _assist)
 	_sim.kick(kick)
 	_aftertouch.begin(kick)
 	_shots += 1

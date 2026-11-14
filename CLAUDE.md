@@ -46,6 +46,7 @@ GitHub Pages'e yayınlar ve debug APK'yı iş çıktısı olarak ekler.
 | `control_params.gd` | Ayar değerleri; üzerine `data/controls.json` yazılır |
 | `swipe.gd` | Kaydırma ölçümü: hız (ekran yüksekliği/s), eğrilik, çıkış noktası |
 | `shot_builder.gd` | Kaydırma + vuruş noktası → `BallState`; yükseliş açısını çözer |
+| `aim_assist.gd` | Gizli nişan yardımı: direğin/üst direğin az dışına giden nişanı içeri çeker, baraja takılan vuruşu biraz yükseltir |
 | `aftertouch.gd` | Havada falso: uçuşun ilk yarısında dönüşü en fazla ±%20 değiştirir |
 
 Nişan: kaydırmanın çıkış noktasından (ilk yönde dümdüz gidilseydi varılacak ekran noktası) geçen kamera ışını kale
@@ -53,6 +54,9 @@ düzlemini nerede kesiyorsa falsosuz top oraya gider. Yay sağa bombeliyse top s
 noktası: alt = alt falso ve ek yükseliş, üst = üst falso, sağ = sola kıvrılır, tam orta = en sert ve dönüşsüz
 (yalpalar). Girdi `scripts/main.gd` içinde `InputEventScreenTouch/Drag` ile işlenir (fare dokunmaya çevrilir);
 çizimler `scripts/ui/practice_hud.gd`. Ekran koordinatları görünüm alanı birimindedir (720 yükseklik).
+
+Nişan yardımı kullanıcının isteğiyle gizlidir: arayüzde adı geçmez, göstergesi yoktur. Gücü `data/controls.json`
+içindeki `assist_*` değerleriyle ayarlanır (`assist_strength = 0` kapatır). Düzeltme süreklidir ve küçüktür.
 
 ## Krampon (`scripts/boots/`, `data/boots.json`)
 

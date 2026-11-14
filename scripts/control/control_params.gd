@@ -26,6 +26,11 @@ var knuckle_max_spin := 1.0    ## tur/sn; kaydırma bundan fazla falso veriyorsa
 var scatter_base := 1.3        ## derece; isabeti 0 olan kramponla tam güçte nişan sapması (standart sapma)
 var scatter_mishit := 1.0      ## derece; tatlı noktanın tam dışından vuruşta eklenen sapma
 
+var assist_strength := 0.8     ## gizli nişan yardımı: 0 = kapalı, 1'e yaklaştıkça güçlü
+var assist_range_x := 1.0      ## m; direğin bu kadar dışına kadar giden nişan içeri çekilir
+var assist_range_y := 0.7      ## m; üst direğin bu kadar üstüne kadar giden nişan aşağı çekilir
+var assist_wall_raise := 0.4   ## m; baraja takılan vuruş en fazla bu kadar yükseltilir
+
 var aftertouch_enabled := 1.0  ## 0 = kapalı (simülasyon modu)
 var aftertouch_limit := 0.2    ## dönüş en fazla bu oranda artar ya da azalır
 var aftertouch_full_drag := 0.25  ## ekran yüksekliği; bu kadar sürükleme tam etki verir

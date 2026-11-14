@@ -10,11 +10,12 @@ const TARGET_LIMIT_Y := 6.0
 
 ## target: kaydırmanın çıkış noktasının kale düzlemindeki (z = 0) karşılığı (x, y), metre.
 ## strike: topun üzerindeki vuruş noktası, -1…1 (+x sağ, +y üst).
+## assist: gizli nişan yardımı (yoksa nişan olduğu gibi kullanılır).
 ## boot: krampon (yoksa kontrol ayarlarındaki sınırlar, hatasız). noise: (yön, yükseliş) için birim rastgele
 ## sapma; kramponun isabeti ve tatlı noktası bunun ne kadarının vuruşa yansıyacağını belirler.
 static func build(swipe: Swipe, target: Vector2, ball_position: Vector3, strike: Vector2,
 		cp: ControlParams, pp: PhysicsParams, boot: Boot = null, noise: Vector2 = Vector2.ZERO,
-		wet: bool = false) -> BallState:
+		wet: bool = false, assist: AimAssist = null) -> BallState:
 	if boot == null:
 		boot = Boot.neutral(cp)
 	var hit := strike.limit_length(1.0)
@@ -23,6 +24,8 @@ static func build(swipe: Swipe, target: Vector2, ball_position: Vector3, strike:
 	var top_speed := maxf(boot.power, cp.min_speed)
 	var speed := lerpf(cp.min_speed, top_speed, power) * (1.0 - cp.strike_power_loss * mishit * mishit)
 
+	if assist != null:
+		target = assist.adjust(target, ball_position, speed, pp)
 	var aim_x := clampf(target.x, -TARGET_LIMIT_X, TARGET_LIMIT_X)
 	var aim_y := clampf(target.y, pp.radius, TARGET_LIMIT_Y)
 	var azimuth := rad_to_deg(atan2(aim_x - ball_position.x, ball_position.z))
