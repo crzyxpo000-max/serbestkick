@@ -17,8 +17,15 @@ Android için 3D, gerçekçi görünümlü serbest vuruş oyunu. Motor Godot 4.6
   hızlı akan maç, oyuna alınma, tek vuruş, baskı, ağır çekim tekrar, maç sonu. Planın "ilk oynanabilir sürümü" budur.
 - **Aşama 7 (kariyer) tamam:** `scripts/career/` ve testleri. Hoca güveni, sezon (14 lig + 3 kupa maçı), puan durumu,
   ün, prim, mağaza (krampon + oyuncu gelişimi), sezon sonu (yükselme, teklif), kayıt (`user://career.json`).
+- **Aşama 8 (görsel):** `scripts/visual/stage_builder.gd`, `shaders/` (çim, top, file, tribün), Poly Haven gökyüzü
+  (CC0, `assets/LICENSES.md`), ilkel şekillerden oyuncu figürleri, ağır çekim tekrar. Gerçekçi insan modeli ve
+  animasyon (Mixamo) **eklenmedi**: giriş gerektirdiği için buluttan indirilemedi.
+- **Aşama 9 (ses ve cila):** `scripts/audio/sound.gd`, sentezle üretilen sesler (`tools/make_sounds.py` →
+  `assets/audio/`), titreşim, ayarlar (`scripts/settings.gd`: ses, titreşim, havada falso).
+- **Aşama 10 (yayın):** simge, sürüm 1.0.0, isteğe bağlı imzalı release APK adımı. Hesap ve imza gerektiren adımlar
+  kullanıcıda: `docs/RELEASE.md`.
 - Kullanıcı 6. aşamadan sonra "teyit almadan bitişe kadar devam et, kontrolü sonda yapacağım" dedi; 6–10. aşamalar
-  telefonda denenmeden yazıldı.
+  telefonda denenmeden yazıldı. Geri bildirim gelince ayar gerekebilir (zorluk, his, ekran düzeni).
 
 ## Komutlar
 
@@ -99,6 +106,14 @@ Ayar sınıflarının ortak tabanı `scripts/param_set.gd` (`ParamSet`).
 
 Burada (bulut) tarayıcı denemesi yazılımsal görüntülemeyle saniyede ~2 kare çalışır; kaydırma ve maç akışını denemek
 için geçici olarak gevşetilmiş ayarlarla ayrı bir derleme alınır, bu ayarlar depoya girmez.
+
+## Görsel ve ses
+
+`StageBuilder` gökyüzünü, çimi, topu, kaleyi, fileyi, çizgileri, tribünü ve figürleri kurar; oyun kuralı içermez.
+Performans sınırı: sahnede yalnızca baraj, kaleci ve top hareket eder; tribün tek gölgelendiricili kutulardır.
+Yeni hazır malzeme eklenirken lisansı kontrol edilir ve `assets/LICENSES.md` dosyasına yazılır.
+`Sound` kısa efektleri, tribün uğultusunu (baskıyla yükselir) ve kalp atışını çalar; sesler `python3 tools/make_sounds.py`
+ile yeniden üretilir. Web'de ses ilk dokunuştan sonra başlar (tarayıcı kuralı).
 
 ## Kariyer (`scripts/career/`)
 

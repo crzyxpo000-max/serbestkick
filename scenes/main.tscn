@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 
@@ -18,7 +18,7 @@ ambient_light_energy = 0.5
 tonemap_mode = 2
 
 [sub_resource type="PlaneMesh" id="pitch_mesh"]
-size = Vector2(90, 80)
+size = Vector2(130, 120)
 
 [sub_resource type="StandardMaterial3D" id="pitch_mat"]
 albedo_color = Color(0.1, 0.3, 0.12, 1)
@@ -31,14 +31,6 @@ height = 0.22
 [sub_resource type="StandardMaterial3D" id="ball_mat"]
 albedo_color = Color(0.96, 0.96, 0.96, 1)
 roughness = 0.5
-
-[sub_resource type="CylinderMesh" id="band_mesh"]
-top_radius = 0.1105
-bottom_radius = 0.1105
-height = 0.05
-
-[sub_resource type="StandardMaterial3D" id="band_mat"]
-albedo_color = Color(0.1, 0.1, 0.12, 1)
 
 [node name="Main" type="Node3D"]
 script = ExtResource("1")
@@ -59,15 +51,6 @@ surface_material_override/0 = SubResource("pitch_mat")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.11, 25)
 mesh = SubResource("ball_mesh")
 surface_material_override/0 = SubResource("ball_mat")
-
-[node name="BandA" type="MeshInstance3D" parent="Ball"]
-mesh = SubResource("band_mesh")
-surface_material_override/0 = SubResource("band_mat")
-
-[node name="BandB" type="MeshInstance3D" parent="Ball"]
-transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("band_mesh")
-surface_material_override/0 = SubResource("band_mat")
 
 [node name="Camera" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.974, 0.225, 0, -0.225, 0.974, 0, 1.6, 30)

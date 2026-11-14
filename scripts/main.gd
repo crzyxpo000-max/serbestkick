@@ -24,8 +24,6 @@ const TARGET_RADIUS := 0.7
 const TARGETS: Array[Vector2] = [
 	Vector2(-2.8, 1.75), Vector2(2.8, 1.75), Vector2(-2.8, 0.7), Vector2(2.8, 0.7), Vector2(0.0, 1.75),
 ]
-const FRAME_COLOR := Color(0.95, 0.95, 0.95)
-const LINE_COLOR := Color(0.9, 0.95, 0.9)
 
 @onready var _ball: MeshInstance3D = $Ball
 @onready var _camera: Camera3D = $Camera
@@ -36,14 +34,17 @@ var _pp := PhysicsParams.load_default()
 var _cp := ControlParams.load_default()
 var _kp := KeeperParams.load_default()
 var _mp := MatchParams.load_default()
+var sound: Sound
+var settings := Settings.load_saved()
 var _sim := BallSimulator.new(_pp)
 var _wall := Wall.new(_kp)
 var _keeper := Keeper.new(_kp)
 var _boots := Boot.load_all()
 var _boot: Boot
 var _picker: BootPicker
-var _wall_nodes: Array[MeshInstance3D] = []
-var _keeper_body: MeshInstance3D
+var _wall_nodes: Array[Node3D] = []
+var _keeper_body: Node3D
+var _pitch_material: ShaderMaterial
 var _keeper_hands: MeshInstance3D
 var _aftertouch := Aftertouch.new(_cp)
 var _assist := AimAssist.new(_cp)
@@ -74,6 +75,10 @@ var _record: Array = []       ## tekrar için kareler: [süre, top konumu, top y
 var _replay_time := 0.0
 var _replay_index := 0
 var _replay_end := 0.0
+var _heard_bounces := 0       ## ses için: son duyulan sekme sayısı ve çarpma durumları
+var _heard_post := false
+var _heard_wall := false
+var _heard_keeper := false
 
 var _touch := Touch.NONE
 var _touch_index := -1
@@ -89,8 +94,16 @@ var _trail_material := StandardMaterial3D.new()
 func _ready() -> void:
 	_rng.randomize()
 	_spot.y = _pp.radius
-	_build_goal()
-	_build_lines()
+	sound = Sound.new()
+	add_child(sound)
+	apply_settings()
+	StageBuilder.apply_sky($WorldEnvironment)
+	_pitch_material = StageBuilder.pitch_material()
+	($Pitch as MeshInstance3D).material_override = _pitch_material
+	_ball.material_override = StageBuilder.ball_material()
+	StageBuilder.build_goal(self, _pp.net_depth)
+	StageBuilder.build_lines(self)
+	StageBuilder.build_stands(self)
 	_build_target()
 	_build_keeper()
 	_sim.wall = _wall
@@ -136,6 +149,17 @@ func _ready() -> void:
 	set_idle()
 
 
+## Ayarları sahneye uygular (ses, havada falso).
+func apply_settings() -> void:
+	sound.enabled = settings.sound
+	_cp.aftertouch_enabled = 1.0 if settings.aftertouch else 0.0
+
+
+func _vibrate(milliseconds: int) -> void:
+	if settings.vibration:
+		Input.vibrate_handheld(milliseconds)
+
+
 ## Antrenman: hedef halkası, rastgele konum, sınırsız deneme.
 func start_practice() -> void:
 	_practice = true
@@ -146,6 +170,7 @@ func start_practice() -> void:
 	_sim.conditions = PitchConditions.new()
 	_last_hit = false
 	_show_practice_ui(true)
+	sound.set_crowd(0.15)
 	_reset_shot()
 
 
@@ -161,7 +186,10 @@ func begin_shot(kick: FreeKick, conditions: PitchConditions, pressure: float, he
 	_keeper_depth = keeper_depth
 	_sim.conditions = conditions
 	_show_practice_ui(false)
+	sound.play("whistle")
+	sound.set_crowd(0.35 + 0.65 * pressure)
 	_reset_shot()
+	sound.set_pressure(pressure)
 
 
 ## Sahneyi bekletir: girdi almaz, vuruş arayüzü gizlenir.
@@ -173,6 +201,7 @@ func set_idle() -> void:
 	_hud.show_disc = false
 	_hud.pressure = 0.0
 	_hud.swipe_points = PackedVector2Array()
+	sound.set_pressure(0.0)
 	_title.text = ""
 	_info.text = ""
 
@@ -297,6 +326,13 @@ func _shoot() -> void:
 	_record.clear()
 	_sim.kick(kick)
 	_aftertouch.begin(kick)
+	sound.play("kick", lerpf(-8.0, 0.0, inverse_lerp(_cp.min_speed, 34.0, kick.velocity.length())))
+	sound.set_pressure(0.0)
+	_vibrate(35)
+	_heard_bounces = 0
+	_heard_post = false
+	_heard_wall = false
+	_heard_keeper = false
 	_shots += 1
 	_phase = Phase.FLIGHT
 	_timer = 0.0
@@ -316,6 +352,12 @@ func _finish_shot() -> void:
 	var parts: Array[String] = []
 	_last_hit = false
 	_scored = _sim.outcome == BallSimulator.Outcome.GOAL
+	if _scored:
+		sound.play("net", -2.0)
+		sound.play("cheer", 0.0 if not _practice else -8.0)
+		_vibrate(220)
+	else:
+		sound.play("groan", -4.0 if not _practice else -12.0)
 	if _scored:
 		_goals += 1
 		_last_hit = _practice and _sim.line_crossing.distance_to(_target) <= TARGET_RADIUS
@@ -359,6 +401,7 @@ func _reset_shot() -> void:
 	_ball.basis = Basis.IDENTITY
 	_camera.position = _camera_position(_spot)
 	_camera.look_at(LOOK_AT)
+	_pitch_material.set_shader_parameter("wetness", 1.0 if _sim.conditions.wet else 0.0)
 	_hud.show_disc = true
 	_hud.pressure = _pressure
 	var distance := roundi(Vector2(_spot.x, _spot.z).length())
@@ -480,6 +523,7 @@ func _end_match_shot() -> void:
 func _fly(delta: float) -> void:
 	_sim.advance(delta)
 	_show_defenders(_sim.state.time)
+	_play_impacts()
 	_ball.position = _sim.state.position
 	var spin := _sim.state.spin
 	var rate := spin.length()
@@ -490,6 +534,23 @@ func _fly(delta: float) -> void:
 		_draw_trail()
 	if not _practice:
 		_record.append([_sim.state.time, _ball.position, _ball.basis, _keeper.feet_x, _keeper.hands])
+
+
+## Çarpma sesleri: sekme, direk, baraj, kaleci.
+func _play_impacts() -> void:
+	if _sim.bounces > _heard_bounces:
+		_heard_bounces = _sim.bounces
+		sound.play("bounce", -6.0)
+	if _sim.hit_post and not _heard_post:
+		_heard_post = true
+		sound.play("post")
+		_vibrate(60)
+	if _sim.hit_wall and not _heard_wall:
+		_heard_wall = true
+		sound.play("save", -3.0, 0.8)
+	if _sim.hit_keeper and not _heard_keeper:
+		_heard_keeper = true
+		sound.play("save")
 
 
 func _draw_trail() -> void:
@@ -549,15 +610,8 @@ func _build_target() -> void:
 
 
 func _build_keeper() -> void:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.95, 0.75, 0.1)
-	var body := CapsuleMesh.new()
-	body.radius = _kp.body_radius
-	body.height = _kp.body_length
-	_keeper_body = MeshInstance3D.new()
+	_keeper_body = StageBuilder.build_keeper(Color(0.95, 0.75, 0.1))
 	_keeper_body.name = "Keeper"
-	_keeper_body.mesh = body
-	_keeper_body.material_override = material
 	add_child(_keeper_body)
 	var glove_material := StandardMaterial3D.new()
 	glove_material.albedo_color = Color(0.95, 0.95, 0.95)
@@ -570,18 +624,12 @@ func _build_keeper() -> void:
 	add_child(_keeper_hands)
 
 
-## Baraj oyuncularını (kutular) yerleştirir; sayı değiştiyse yeniden kurar.
+## Baraj oyuncularını yerleştirir; sayı değiştiyse yeniden kurar.
 func _place_wall_nodes() -> void:
 	while _wall_nodes.size() > _wall.centres.size():
 		_wall_nodes.pop_back().queue_free()
 	while _wall_nodes.size() < _wall.centres.size():
-		var material := StandardMaterial3D.new()
-		material.albedo_color = Color(0.2, 0.3, 0.75)
-		var mesh := BoxMesh.new()
-		mesh.size = Vector3(_kp.wall_player_width * 0.92, _kp.wall_player_height, _kp.wall_player_depth)
-		var node := MeshInstance3D.new()
-		node.mesh = mesh
-		node.material_override = material
+		var node := StageBuilder.build_figure(Color(0.15, 0.25, 0.7), Color(0.9, 0.9, 0.9))
 		add_child(node)
 		_wall_nodes.append(node)
 	for node in _wall_nodes:
@@ -592,62 +640,11 @@ func _place_wall_nodes() -> void:
 func _show_defenders(time: float) -> void:
 	var lift := _wall.jump_offset(time) if _phase != Phase.AIM else 0.0
 	for i in _wall_nodes.size():
-		_wall_nodes[i].position = _wall.centres[i] + Vector3.UP * (lift + _kp.wall_player_height / 2.0)
+		_wall_nodes[i].position = _wall.centres[i] + Vector3.UP * lift
 	var segment := _keeper.body_segment()
 	var along := segment[1] - segment[0]
-	_keeper_body.position = (segment[0] + segment[1]) * 0.5
-	_keeper_body.basis = Basis(Quaternion(Vector3.UP, along.normalized()))
-	_keeper_body.scale = Vector3(1.0, (along.length() + 2.0 * _kp.body_radius) / _kp.body_length, 1.0)
+	var direction := along.normalized()
+	_keeper_body.position = segment[0] - direction * _kp.body_radius
+	_keeper_body.basis = Basis(Quaternion(Vector3.UP, direction))
+	_keeper_body.scale = Vector3(1.0, (along.length() + 2.0 * _kp.body_radius) / StageBuilder.KEEPER_LENGTH, 1.0)
 	_keeper_hands.position = Vector3(_keeper.hands.x, _keeper.hands.y, _keeper.depth)
-
-
-func _build_goal() -> void:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = FRAME_COLOR
-	for segment: Array in GoalFrame.segments():
-		var from: Vector3 = segment[0]
-		var to: Vector3 = segment[1]
-		var mesh := CylinderMesh.new()
-		mesh.top_radius = GoalFrame.POST_RADIUS
-		mesh.bottom_radius = GoalFrame.POST_RADIUS
-		mesh.height = from.distance_to(to)
-		var node := MeshInstance3D.new()
-		node.mesh = mesh
-		node.material_override = material
-		node.position = (from + to) * 0.5
-		if absf((to - from).normalized().y) < 0.5:
-			node.rotation.z = PI / 2.0
-		add_child(node)
-	var net_material := StandardMaterial3D.new()
-	net_material.albedo_color = Color(1.0, 1.0, 1.0, 0.18)
-	net_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	net_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	var net_mesh := BoxMesh.new()
-	net_mesh.size = Vector3(GoalFrame.WIDTH, GoalFrame.HEIGHT, _pp.net_depth)
-	var net := MeshInstance3D.new()
-	net.mesh = net_mesh
-	net.material_override = net_material
-	net.position = Vector3(0.0, GoalFrame.HEIGHT / 2.0, -_pp.net_depth / 2.0)
-	add_child(net)
-
-
-## Kale çizgisi, ceza sahası (16,5 m) ve kale sahası (5,5 m).
-func _build_lines() -> void:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = LINE_COLOR
-	var post := GoalFrame.HALF_WIDTH
-	_add_line(material, Vector3(0, 0, 0), Vector3(68.0, 0, 0.12))
-	for box: Vector2 in [Vector2(post + 16.5, 16.5), Vector2(post + 5.5, 5.5)]:
-		_add_line(material, Vector3(0, 0, box.y), Vector3(box.x * 2.0, 0, 0.12))
-		_add_line(material, Vector3(-box.x, 0, box.y / 2.0), Vector3(0.12, 0, box.y))
-		_add_line(material, Vector3(box.x, 0, box.y / 2.0), Vector3(0.12, 0, box.y))
-
-
-func _add_line(material: Material, centre: Vector3, size: Vector3) -> void:
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(size.x, 0.01, size.z)
-	var node := MeshInstance3D.new()
-	node.mesh = mesh
-	node.material_override = material
-	node.position = centre + Vector3(0, 0.005, 0)
-	add_child(node)

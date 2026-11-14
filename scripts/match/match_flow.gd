@@ -62,6 +62,12 @@ func _process(delta: float) -> void:
 		var event := _match.events[_event_index]
 		_event_index += 1
 		_say(event.minute, event.text)
+		if event.kind == MatchEvent.Kind.GOAL_US:
+			_scene.sound.play("cheer", -6.0)
+		elif event.kind == MatchEvent.Kind.GOAL_THEM:
+			_scene.sound.play("groan", -8.0)
+		elif event.kind == MatchEvent.Kind.FREE_KICK:
+			_scene.sound.play("whistle", -4.0)
 		if event.kind == MatchEvent.Kind.FREE_KICK:
 			_minute = event.minute
 			_kick = event.free_kick
@@ -73,6 +79,8 @@ func _process(delta: float) -> void:
 	if _minute >= Match.LENGTH and _event_index >= _match.events.size() and _pause <= 0.0:
 		_minute = Match.LENGTH
 		_say(Match.LENGTH, _match.line(_rng, "fulltime"))
+		_scene.sound.play("whistle", -4.0, 0.9)
+		_scene.sound.set_crowd(0.0)
 		_show_full_time()
 		return
 	_refresh_ticker()
@@ -83,6 +91,7 @@ func _process(delta: float) -> void:
 func _show_menu() -> void:
 	_stage = Stage.MENU
 	_scene.set_idle()
+	_scene.sound.set_crowd(0.0)
 	var box := _panel(0.72, 460)
 	box.add_child(_text("Serbest Kick", 52))
 	box.add_child(_text("Takımın duran top uzmanısın.\nKritik anda oyuna girer, tek vuruşunu kullanırsın.", 22, Color(1, 1, 1, 0.8)))
@@ -93,6 +102,22 @@ func _show_menu() -> void:
 		box.add_child(_button("Kariyere başla", _new_career))
 	box.add_child(_button("Hızlı maç", _new_match))
 	box.add_child(_button("Antrenman", _start_practice))
+	box.add_child(_button("Ayarlar", _show_settings))
+
+
+func _show_settings() -> void:
+	var settings := _scene.settings
+	var box := _panel(0.72, 560)
+	box.add_child(_text("Ayarlar", 34))
+	for key in Settings.KEYS:
+		var state := "Açık" if settings.get(key) else "Kapalı"
+		box.add_child(_row(Settings.LABELS[key], state, func() -> void:
+			settings.toggle(key)
+			settings.save()
+			_scene.apply_settings()
+			_show_settings()))
+	box.add_child(_text("Havada falso kapalıyken top vuruştan sonra yönlendirilemez (simülasyon modu).", 18, Color(1, 1, 1, 0.65)))
+	box.add_child(_button("Geri", _show_menu))
 
 
 func _start_practice() -> void:
@@ -129,6 +154,8 @@ func _start_ticker() -> void:
 	_half_time_said = false
 	_lines.clear()
 	_say(1, _match.line(_rng, "kickoff"))
+	_scene.sound.play("whistle", -4.0)
+	_scene.sound.set_crowd(0.3)
 	_pause = _mp.event_pause * 0.5
 	_show_ticker()
 
@@ -188,6 +215,7 @@ func _on_shot_finished(scored: bool) -> void:
 	_match.record_shot(_kick, scored)
 	_say(_kick.minute, _match.line(_rng, "player_goal" if scored else "player_miss"))
 	_pause = _mp.event_pause
+	_scene.sound.set_crowd(0.3)
 	_show_ticker()
 
 
@@ -462,5 +490,6 @@ func _button(text: String, action: Callable) -> Button:
 	button.text = text
 	button.custom_minimum_size = Vector2(0, 58)
 	button.add_theme_font_size_override("font_size", 26)
+	button.pressed.connect(func() -> void: _scene.sound.play("click"))
 	button.pressed.connect(action)
 	return button

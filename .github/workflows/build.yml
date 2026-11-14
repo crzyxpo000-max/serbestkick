@@ -84,6 +84,28 @@ jobs:
           godot --headless --path . --export-debug Android build/android/serbestkick-debug.apk
           test -s build/android/serbestkick-debug.apk
 
+      # İmzalı release APK: yalnızca gizli değerler tanımlıysa (docs/RELEASE.md).
+      - name: Android APK (release, imzalı)
+        if: env.RELEASE_KEYSTORE_BASE64 != ''
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          GODOT_ANDROID_KEYSTORE_RELEASE_USER: ${{ secrets.RELEASE_KEYSTORE_USER }}
+          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+        run: |
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$HOME/release.keystore"
+          export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$HOME/release.keystore"
+          godot --headless --path . --export-release Android build/android/serbestkick-release.apk
+          test -s build/android/serbestkick-release.apk
+
+      - name: Release APK'yı yükle
+        if: env.RELEASE_KEYSTORE_BASE64 != ''
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: serbestkick-release-apk
+          path: build/android/serbestkick-release.apk
+
       - name: APK'yı yükle
         uses: actions/upload-artifact@v4
         with:
