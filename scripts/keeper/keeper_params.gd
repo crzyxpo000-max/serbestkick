@@ -4,17 +4,17 @@ extends RefCounted
 
 const DATA_PATH := "res://data/keeper.json"
 
-var reaction_time := 0.45      ## s, vuruştan sonra kalecinin ilk hareketi
+var reaction_time := 0.5      ## s, vuruştan sonra kalecinin ilk hareketi
 var reaction_jitter := 0.05    ## s, tepki süresindeki rastgele oynama
-var step_speed := 1.4          ## m/s, ayakların yana kayması
-var hand_speed := 3.6          ## m/s, ellerin topa uzanma hızı
-var reach := 2.05               ## m, eller ayak noktasından en fazla bu kadar uzaklaşır
+var step_speed := 1.2          ## m/s, ayakların yana kayması
+var hand_speed := 3.1          ## m/s, ellerin topa uzanma hızı
+var reach := 2.0               ## m, eller ayak noktasından en fazla bu kadar uzaklaşır
 var body_length := 1.75        ## m
 var body_radius := 0.22        ## m
 var depth := 0.6               ## m, kaleci çizginin bu kadar önünde durur
 var ready_height := 1.2        ## m, hazır duruşta ellerin yüksekliği
 var start_offset := 0.6        ## m, kaleci barajın kapatmadığı tarafa bu kadar kayar
-var spin_read := 0.35          ## kaleci falsonun bu oranını öngörür (1 = kusursuz okur)
+var spin_read := 0.25          ## kaleci falsonun bu oranını öngörür (1 = kusursuz okur)
 var read_interval := 0.1       ## s, tahminini bu aralıkla yeniler
 var catch_speed := 22.0        ## m/s, bundan yavaş topu elleriyle tutar; hızlısını çeler
 var parry_restitution := 0.35
