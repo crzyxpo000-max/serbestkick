@@ -26,18 +26,3 @@ func test_physics_tick_rate() -> Array[String]:
 		errors.append("fizik adımı en az 120 Hz olmalı, şu an %d" % ticks)
 	return errors
 
-
-func test_demo_shots_load() -> Array[String]:
-	var errors: Array[String] = []
-	var shots := DemoShot.load_all()
-	if shots.size() < 5:
-		errors.append("en az 5 gösterim vuruşu olmalı, şu an %d" % shots.size())
-	for shot in shots:
-		if shot.name.is_empty():
-			errors.append("adsız gösterim vuruşu")
-		var sim := BallSimulator.new(PhysicsParams.load_default(), shot.conditions)
-		sim.kick(shot.kick)
-		sim.run(60.0)
-		if sim.outcome == BallSimulator.Outcome.NONE:
-			errors.append("vuruş sonuçlanmadı: " + shot.name)
-	return errors

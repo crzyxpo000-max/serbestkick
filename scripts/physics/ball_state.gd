@@ -7,6 +7,8 @@ var position := Vector3.ZERO
 var velocity := Vector3.ZERO  ## m/s
 var spin := Vector3.ZERO      ## açısal hız, rad/s
 var time := 0.0               ## s
+var knuckle := 0.0            ## 0–1, dönüşsüz vuruşun yalpalama şiddeti
+var knuckle_phase := 0.0      ## rad, yalpalamanın başlangıç fazı
 
 
 func duplicate_state() -> BallState:
@@ -15,6 +17,8 @@ func duplicate_state() -> BallState:
 	copy.velocity = velocity
 	copy.spin = spin
 	copy.time = time
+	copy.knuckle = knuckle
+	copy.knuckle_phase = knuckle_phase
 	return copy
 
 

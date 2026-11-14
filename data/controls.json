@@ -1,0 +1,22 @@
+{
+	"_aciklama": "Kaydırma kontrolü ayarları. Anahtarlar scripts/control/control_params.gd alanlarıyla aynıdır.",
+	"min_swipe_length": 0.08,
+	"swipe_window": 0.5,
+	"slow_swipe": 0.8,
+	"fast_swipe": 3.0,
+	"min_speed": 16.0,
+	"max_speed": 32.0,
+	"max_side_spin": 10.0,
+	"curvature_full": 0.25,
+	"tangent_fraction": 0.3,
+	"strike_side_spin": 5.0,
+	"strike_top_spin": 6.0,
+	"strike_elevation": 6.0,
+	"strike_power_loss": 0.2,
+	"knuckle_radius": 0.15,
+	"knuckle_max_spin": 1.0,
+	"aftertouch_enabled": 1,
+	"aftertouch_limit": 0.2,
+	"aftertouch_full_drag": 0.25,
+	"aftertouch_window": 0.5
+}

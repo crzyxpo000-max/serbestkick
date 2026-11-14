@@ -21,16 +21,34 @@ static func acceleration(velocity: Vector3, spin: Vector3, p: PhysicsParams, win
 	return accel
 
 
+## Dönüşsüz (knuckleball) vuruşun yalpalaması: hıza dik, yön değiştiren küçük bir kuvvet.
+static func knuckle_acceleration(state: BallState, p: PhysicsParams, wind: Vector3) -> Vector3:
+	if state.knuckle <= 0.0:
+		return Vector3.ZERO
+	var fade := clampf(1.0 - state.spin.length() / p.knuckle_spin_limit, 0.0, 1.0)
+	var relative := state.velocity - wind
+	var side := relative.cross(Vector3.UP)
+	if fade <= 0.0 or side.length_squared() < 1e-9:
+		return Vector3.ZERO
+	side = side.normalized()
+	var lift_dir := side.cross(relative).normalized()
+	var phase := state.knuckle_phase + TAU * p.knuckle_frequency * state.time
+	var q := 0.5 * p.air_density * PI * p.radius * p.radius / p.mass
+	var strength := q * p.knuckle_lift * relative.length_squared() * state.knuckle * fade
+	return (side * sin(phase) + lift_dir * (0.4 * sin(phase * 0.7 + 1.3))) * strength
+
+
 ## Bir adım ilerletir (konum ve hız için RK4, dönüş için üstel sönüm).
 static func integrate(state: BallState, dt: float, p: PhysicsParams, wind: Vector3) -> void:
+	var wobble := knuckle_acceleration(state, p, wind)
 	var v1 := state.velocity
-	var a1 := acceleration(v1, state.spin, p, wind)
+	var a1 := acceleration(v1, state.spin, p, wind) + wobble
 	var v2 := state.velocity + a1 * (dt * 0.5)
-	var a2 := acceleration(v2, state.spin, p, wind)
+	var a2 := acceleration(v2, state.spin, p, wind) + wobble
 	var v3 := state.velocity + a2 * (dt * 0.5)
-	var a3 := acceleration(v3, state.spin, p, wind)
+	var a3 := acceleration(v3, state.spin, p, wind) + wobble
 	var v4 := state.velocity + a3 * dt
-	var a4 := acceleration(v4, state.spin, p, wind)
+	var a4 := acceleration(v4, state.spin, p, wind) + wobble
 	state.position += (v1 + 2.0 * v2 + 2.0 * v3 + v4) * (dt / 6.0)
 	state.velocity += (a1 + 2.0 * a2 + 2.0 * a3 + a4) * (dt / 6.0)
 	state.spin *= exp(-p.spin_decay * dt)

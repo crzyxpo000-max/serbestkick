@@ -1,0 +1,72 @@
+class_name ShotBuilder
+extends RefCounted
+## Kaydırma + vuruş noktası → topun çıkış durumu.
+## Parmağın hızı gücü, yönü nişanı, yayın eğriliği falsoyu belirler.
+
+const MAX_ELEVATION := 35.0
+const TARGET_LIMIT_X := 15.0
+const TARGET_LIMIT_Y := 6.0
+
+
+## target: kaydırmanın çıkış noktasının kale düzlemindeki (z = 0) karşılığı (x, y), metre.
+## strike: topun üzerindeki vuruş noktası, -1…1 (+x sağ, +y üst).
+static func build(swipe: Swipe, target: Vector2, ball_position: Vector3, strike: Vector2,
+		cp: ControlParams, pp: PhysicsParams) -> BallState:
+	var hit := strike.limit_length(1.0)
+	var power := clampf(inverse_lerp(cp.slow_swipe, cp.fast_swipe, swipe.speed), 0.0, 1.0)
+	var speed := lerpf(cp.min_speed, cp.max_speed, power) * (1.0 - cp.strike_power_loss * hit.length_squared())
+
+	var aim_x := clampf(target.x, -TARGET_LIMIT_X, TARGET_LIMIT_X)
+	var aim_y := clampf(target.y, pp.radius, TARGET_LIMIT_Y)
+	var azimuth := rad_to_deg(atan2(aim_x - ball_position.x, ball_position.z))
+	var elevation := solve_elevation(ball_position, speed, azimuth, aim_y, pp)
+	elevation = clampf(elevation - hit.y * cp.strike_elevation, 0.0, MAX_ELEVATION + cp.strike_elevation)
+
+	# Sağa bombeli yay: top sağa çıkar, sola kıvrılır. Topun sağına vurmak da sola kıvırır.
+	var curve := clampf(swipe.curvature / cp.curvature_full, -1.0, 1.0)
+	var swipe_spin := -curve * cp.max_side_spin
+	var side_spin := clampf(swipe_spin - hit.x * cp.strike_side_spin, -cp.max_side_spin, cp.max_side_spin)
+	var top_spin := hit.y * cp.strike_top_spin
+
+	var knuckle := hit.length() <= cp.knuckle_radius and absf(swipe_spin) <= cp.knuckle_max_spin
+	if knuckle:
+		side_spin = 0.0
+		top_spin = 0.0
+	var state := BallState.from_kick(ball_position, speed, elevation, azimuth, side_spin, top_spin)
+	if knuckle:
+		state.knuckle = 1.0
+		state.knuckle_phase = fposmod(speed * 7.13 + aim_x * 3.7 + aim_y * 5.3, TAU)
+	return state
+
+
+## Falsosuz topun kale düzlemini `target_y` yüksekliğinde geçmesi için gereken yükseliş açısı (derece).
+## Top o hızla yetişemiyorsa en uzağa giden açıya yakın bir değer döner.
+static func solve_elevation(ball_position: Vector3, speed: float, azimuth_deg: float, target_y: float,
+		pp: PhysicsParams) -> float:
+	var low := 0.0
+	var high := MAX_ELEVATION
+	if _height_at_line(ball_position, speed, high, azimuth_deg, pp) < target_y:
+		return high
+	for i in 18:
+		var middle := (low + high) * 0.5
+		if _height_at_line(ball_position, speed, middle, azimuth_deg, pp) < target_y:
+			low = middle
+		else:
+			high = middle
+	return (low + high) * 0.5
+
+
+## Topun kale düzlemindeki yüksekliği; yere daha önce düşerse eksi (kalan mesafe kadar).
+static func _height_at_line(ball_position: Vector3, speed: float, elevation_deg: float, azimuth_deg: float,
+		pp: PhysicsParams) -> float:
+	var state := BallState.from_kick(ball_position, speed, elevation_deg, azimuth_deg)
+	var previous := state.position
+	while state.time < 10.0:
+		previous = state.position
+		BallFlight.integrate(state, pp.time_step, pp, Vector3.ZERO)
+		if state.position.z <= 0.0:
+			var t := previous.z / (previous.z - state.position.z)
+			return lerpf(previous.y, state.position.y, t)
+		if state.position.y < pp.radius and state.velocity.y < 0.0:
+			return -state.position.z
+	return -state.position.z

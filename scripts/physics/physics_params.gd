@@ -12,6 +12,9 @@ var drag_coefficient := 0.2    ## Cd, maç topu için şut hızlarında
 var lift_slope := 0.8          ## Cl = lift_slope × dönüş oranı (r·ω/v)
 var lift_max := 0.3            ## Cl üst sınırı
 var spin_decay := 0.15         ## 1/s, dönüşün üstel sönümü
+var knuckle_lift := 0.08       ## dönüşsüz topun yalpalama katsayısı (Cl karşılığı)
+var knuckle_spin_limit := 9.0  ## rad/s, bu dönüşün üstünde yalpalama olmaz
+var knuckle_frequency := 1.3   ## Hz
 var time_step := 1.0 / 240.0   ## s, sabit benzetim adımı
 
 var ground_restitution := 0.6

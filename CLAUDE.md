@@ -7,8 +7,10 @@ Android için 3D, gerçekçi görünümlü serbest vuruş oyunu. Motor Godot 4.6
 
 - **Aşama 0 (kurulum) tamam:** proje iskeleti, boş sahne, test koşucusu, otomatik derleme (web + debug APK).
 - **Aşama 1 (top fiziği) tamam:** `scripts/physics/` (uçuş, sekme, yuvarlanma, direk, file, gol kararı) ve testleri.
-  Ana sahne şimdilik `data/demo_shots.json` içindeki hazır vuruşları sırayla oynatan bir gösterimdir.
-- Sıradaki: Aşama 2, kontrol (kaydırarak şut, vuruş noktası, sınırlı aftertouch) → `scripts/control/`.
+- **Aşama 2 (kontrol) tamam:** `scripts/control/` (kaydırma ölçümü, vuruş kurulumu, vuruş noktası, dönüşsüz vuruş,
+  havada falso) ve testleri. Ana sahne gri kutulu antrenman sahasıdır: hedef halkası, rastgele konum, isabet sayacı.
+- Sıradaki: Aşama 3, his ayarı (güç, falso, tolerans değerleri). Bilgisayarda, editörde yapılması planlandı;
+  değerler `data/physics.json` ve `data/controls.json` içinde.
 
 ## Komutlar
 
@@ -32,6 +34,21 @@ GitHub Pages'e yayınlar ve debug APK'yı iş çıktısı olarak ekler.
 | `goal_frame.gd` | Kale ölçüleri, direk doğru parçaları |
 | `ball_simulator.gd` | Bir vuruşun tamamı: sabit 1/240 sn adım, sonuç (`GOAL`, `OUT`, `STOPPED`), çizgi geçiş noktası |
 | `pitch_conditions.gd` | Rüzgar ve ıslak saha |
+
+## Kontrol (`scripts/control/`)
+
+| Dosya | İçerik |
+| --- | --- |
+| `control_params.gd` | Ayar değerleri; üzerine `data/controls.json` yazılır |
+| `swipe.gd` | Kaydırma ölçümü: hız (ekran yüksekliği/s), eğrilik, çıkış noktası |
+| `shot_builder.gd` | Kaydırma + vuruş noktası → `BallState`; yükseliş açısını çözer |
+| `aftertouch.gd` | Havada falso: uçuşun ilk yarısında dönüşü en fazla ±%20 değiştirir |
+
+Nişan: kaydırmanın çıkış noktasından (ilk yönde dümdüz gidilseydi varılacak ekran noktası) geçen kamera ışını kale
+düzlemini nerede kesiyorsa falsosuz top oraya gider. Yay sağa bombeliyse top sağa çıkar, sola kıvrılır. Vuruş
+noktası: alt = alt falso ve ek yükseliş, üst = üst falso, sağ = sola kıvrılır, tam orta = en sert ve dönüşsüz
+(yalpalar). Girdi `scripts/main.gd` içinde `InputEventScreenTouch/Drag` ile işlenir (fare dokunmaya çevrilir);
+çizimler `scripts/ui/practice_hud.gd`. Ekran koordinatları görünüm alanı birimindedir (720 yükseklik).
 
 Eksenler: kale çizgisi z = 0, kale ortası x = 0, vuruş +z'den -z'ye, +x vurucunun sağı. Yan falso artı = sağa
 kıvrılır; üst falso artı = top dalar. Vector3 tek duyarlıklıdır: testlerde 1e-6'dan sıkı tolerans kullanma.
