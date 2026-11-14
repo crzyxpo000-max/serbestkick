@@ -10,6 +10,7 @@ var reaction := 0.35
 var target := Vector2.ZERO
 var has_target := false
 var holding := false
+var depth := 0.6                   ## m, kalecinin çizginin önünde durduğu mesafe
 
 var _next_read := 0.0
 
@@ -20,7 +21,9 @@ func _init(p_params: KeeperParams = null) -> void:
 
 
 ## jitter: -1…1, tepki süresindeki oynama.
-func reset(start_x: float, jitter: float = 0.0) -> void:
+## p_depth: kalecinin çizgiden uzaklığı (eksi = ayarlardaki değer).
+func reset(start_x: float, jitter: float = 0.0, p_depth: float = -1.0) -> void:
+	depth = p_depth if p_depth >= 0.0 else params.depth
 	feet_x = start_x
 	hands = Vector2(start_x, params.ready_height)
 	reaction = params.reaction_time + params.reaction_jitter * clampf(jitter, -1.0, 1.0)
@@ -34,7 +37,7 @@ func update(sim: BallSimulator, dt: float) -> void:
 	var time := sim.state.time
 	if holding or sim.hit_keeper or time < reaction or sim.outcome != BallSimulator.Outcome.NONE:
 		return
-	if time >= _next_read and sim.state.position.z > params.depth:
+	if time >= _next_read and sim.state.position.z > depth:
 		_read(sim)
 		_next_read = time + params.read_interval
 	if not has_target:
@@ -57,7 +60,7 @@ func _read(sim: BallSimulator) -> void:
 	preview.kick(guess)
 	preview.state.time = guess.time
 	var limit := guess.time + 4.0
-	while preview.state.position.z > params.depth and preview.outcome == BallSimulator.Outcome.NONE \
+	while preview.state.position.z > depth and preview.outcome == BallSimulator.Outcome.NONE \
 			and preview.state.time < limit:
 		preview.step()
 	var point := preview.state.position
@@ -70,8 +73,8 @@ func _read(sim: BallSimulator) -> void:
 
 ## Gövde kapsülünün ekseni: [ayak ucu, el ucu].
 func body_segment() -> Array[Vector3]:
-	var foot := Vector3(feet_x, params.body_radius, params.depth)
-	var hand := Vector3(hands.x, hands.y, params.depth)
+	var foot := Vector3(feet_x, params.body_radius, depth)
+	var hand := Vector3(hands.x, hands.y, depth)
 	var along := hand - foot
 	var length := along.length()
 	var body := params.body_length - params.body_radius

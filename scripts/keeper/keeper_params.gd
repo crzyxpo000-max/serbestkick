@@ -1,5 +1,5 @@
 class_name KeeperParams
-extends RefCounted
+extends ParamSet
 ## Kaleci ve baraj ayarları. Varsayılanların üzerine data/keeper.json yazılır.
 
 const DATA_PATH := "res://data/keeper.json"
@@ -33,24 +33,7 @@ var wall_restitution := 0.4
 var wall_friction := 0.3
 
 
-func apply(values: Dictionary) -> Array[String]:
-	var unknown: Array[String] = []
-	for key: String in values:
-		if key.begins_with("_"):
-			continue
-		if get(key) == null:
-			unknown.append(key)
-		else:
-			set(key, float(values[key]))
-	return unknown
-
-
 static func load_default() -> KeeperParams:
 	var params := KeeperParams.new()
-	if FileAccess.file_exists(DATA_PATH):
-		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(DATA_PATH))
-		if parsed is Dictionary:
-			var unknown := params.apply(parsed)
-			if not unknown.is_empty():
-				push_warning("keeper.json: bilinmeyen anahtarlar %s" % [unknown])
+	params.load_file(DATA_PATH)
 	return params

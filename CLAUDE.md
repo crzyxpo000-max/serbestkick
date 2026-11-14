@@ -13,8 +13,10 @@ Android için 3D, gerçekçi görünümlü serbest vuruş oyunu. Motor Godot 4.6
 - **Aşama 4 (kaleci ve baraj) tamam:** `scripts/keeper/` ve testleri. Antrenman sahasında baraj (mesafeye göre 2–4 kişi)
   ve kaleci var; zorluk kullanıcının geri bildirimiyle ayarlandı.
 - **Aşama 5 (krampon) tamam:** `scripts/boots/boot.gd`, `data/boots.json` (4 tip), seçim ekranı ve testleri.
+- **Aşama 6 (maç senaryosu) tamam:** `scripts/match/` ve testleri. Menü (Maç / Antrenman), maç öncesi krampon seçimi,
+  hızlı akan maç, oyuna alınma, tek vuruş, baskı, ağır çekim tekrar, maç sonu. Planın "ilk oynanabilir sürümü" budur.
   Kullanıcının telefonda denemesi bekleniyor.
-- Sıradaki: Aşama 6, maç senaryosu (hızlı akan maç, oyuna alınma, baskı, sonuç) → `scripts/match/`.
+- Sıradaki: Aşama 7, kariyer (hoca güveni, sezon, ün, gelişim, kayıt) → `scripts/career/`.
 
 ## Komutlar
 
@@ -77,6 +79,24 @@ vuruştan önce değişir.
 
 `BallSimulator.wall` ve `.keeper` isteğe bağlıdır; `hit_wall`, `hit_keeper` ve `Outcome.SAVED` (kaleci tuttu) sonuçları
 verir. Kaleci gövdesi ayaklardan ellere uzanan kapsüldür ve çizginin `depth` kadar önünde durur.
+
+## Maç (`scripts/match/`)
+
+| Dosya | İçerik |
+| --- | --- |
+| `match_params.gd` | Maç akışı ayarları; üzerine `data/match.json` yazılır |
+| `match.gd` | Maç üretimi (takımlar, önem, hava, otomatik goller, 0–2 serbest vuruş), skor, baskı hesabı |
+| `match_event.gd`, `free_kick.gd` | Akıştaki olay ve serbest vuruş pozisyonu |
+| `match_flow.gd` | Ekranlar ve zamanlama: menü, maç öncesi, hızlı akış, oyuna alınma, maç sonu |
+
+Takım adları `data/teams.json`, spiker cümleleri `data/commentary.json` (`{us}`, `{them}` yer tutucuları).
+`scripts/main.gd` (`ShotScene`) vuruş sahnesidir; `MatchFlow` onu `start_practice()`, `begin_shot(...)`, `set_idle()` ile
+sürer ve `shot_finished(scored)` sinyalini dinler. Baskı (0–1): nişan sapmasını büyütür, kamerayı titretir, ekranda
+kalp atışı gibi atan kırmızı çerçeve çizer. Maçta vuruş tektir; sonuçtan sonra ağır çekim tekrar oynar.
+Ayar sınıflarının ortak tabanı `scripts/param_set.gd` (`ParamSet`).
+
+Burada (bulut) tarayıcı denemesi yazılımsal görüntülemeyle saniyede ~2 kare çalışır; kaydırma ve maç akışını denemek
+için geçici olarak gevşetilmiş ayarlarla ayrı bir derleme alınır, bu ayarlar depoya girmez.
 
 Eksenler: kale çizgisi z = 0, kale ortası x = 0, vuruş +z'den -z'ye, +x vurucunun sağı. Yan falso artı = sağa
 kıvrılır; üst falso artı = top dalar. Vector3 tek duyarlıklıdır: testlerde 1e-6'dan sıkı tolerans kullanma.

@@ -1,5 +1,5 @@
 class_name ControlParams
-extends RefCounted
+extends ParamSet
 ## Kaydırma kontrolünün ayar değerleri. Varsayılanların üzerine data/controls.json yazılır.
 ## Güç ve falso üst sınırları 5. aşamada krampondan gelecek.
 
@@ -37,24 +37,7 @@ var aftertouch_full_drag := 0.25  ## ekran yüksekliği; bu kadar sürükleme ta
 var aftertouch_window := 0.5   ## uçuş mesafesinin ilk bu oranında çalışır
 
 
-func apply(values: Dictionary) -> Array[String]:
-	var unknown: Array[String] = []
-	for key: String in values:
-		if key.begins_with("_"):
-			continue
-		if get(key) == null:
-			unknown.append(key)
-		else:
-			set(key, float(values[key]))
-	return unknown
-
-
 static func load_default() -> ControlParams:
 	var params := ControlParams.new()
-	if FileAccess.file_exists(DATA_PATH):
-		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(DATA_PATH))
-		if parsed is Dictionary:
-			var unknown := params.apply(parsed)
-			if not unknown.is_empty():
-				push_warning("controls.json: bilinmeyen anahtarlar %s" % [unknown])
+	params.load_file(DATA_PATH)
 	return params

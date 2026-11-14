@@ -18,6 +18,11 @@ var boot: Boot:
 	set(value):
 		boot = value
 		queue_redraw()
+var pressure := 0.0:   ## 0–1; kalp atışı gibi atan kırmızı çerçeve
+	set(value):
+		pressure = value
+		set_process(value > 0.05)
+		queue_redraw()
 var show_disc := true:
 	set(value):
 		show_disc = value
@@ -27,6 +32,11 @@ var show_disc := true:
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	set_process(false)
+
+
+func _process(_delta: float) -> void:
+	queue_redraw()
 
 
 func disc_radius() -> float:
@@ -49,6 +59,12 @@ func strike_from(point: Vector2) -> Vector2:
 
 
 func _draw() -> void:
+	if pressure > 0.05:
+		var beats_per_second := (70.0 + 60.0 * pressure) / 60.0
+		var beat := pow(maxf(sin(Time.get_ticks_msec() / 1000.0 * TAU * beats_per_second), 0.0), 6.0)
+		var width := size.y * 0.05
+		var color := Color(0.85, 0.05, 0.05, pressure * (0.15 + 0.45 * beat))
+		draw_rect(Rect2(Vector2.ZERO, size).grow(-width / 2.0), color, false, width)
 	if show_disc:
 		var centre := disc_centre()
 		var radius := disc_radius()

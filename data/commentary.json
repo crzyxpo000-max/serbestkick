@@ -1,0 +1,22 @@
+{
+	"kickoff": ["Hakem düdüğü çaldı, maç başladı."],
+	"filler": [
+		"Orta sahada sert bir mücadele var.",
+		"{us} topu çeviriyor, boşluk arıyor.",
+		"{them} baskıyı artırdı.",
+		"Kornerden gelen top savunmadan döndü.",
+		"Uzaktan şut, kaleci kontrol etti.",
+		"Oyun kısa süreliğine durdu.",
+		"Tribünler ayağa kalktı.",
+		"Ofsayt bayrağı kalktı.",
+		"{us} kanattan geliyor ama orta isabetsiz.",
+		"{them} kontraya çıktı, tehlike atlatıldı."
+	],
+	"goal_us": ["GOL! {us} skoru değiştirdi.", "Ağlar sarsıldı! {us} golü buldu."],
+	"goal_them": ["{them} golü attı.", "Savunma seyretti, {them} gol buldu."],
+	"foul": ["Faul! Hakem serbest vuruşu gösterdi.", "Ceza sahası yakınında faul! Tehlikeli bir serbest vuruş."],
+	"player_goal": ["GOOOL! Serbest vuruş ağlarda!", "İnanılmaz bir vuruş! Top filelerde!"],
+	"player_miss": ["Serbest vuruş sonuç vermedi.", "Fırsat kaçtı, oyun devam ediyor."],
+	"halftime": ["İlk yarı sona erdi."],
+	"fulltime": ["Maç bitti."]
+}

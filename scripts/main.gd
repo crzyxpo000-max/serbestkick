@@ -1,12 +1,21 @@
+class_name ShotScene
 extends Node3D
-## Gri kutulu antrenman sahası: vuruş noktasını seç, kaleye doğru kaydır; barajı aş, kaleciyi geç, hedefi vur.
+## Vuruş sahnesi: vuruş noktasını seç, kaleye doğru kaydır; barajı aş, kaleciyi geç.
+## Antrenmanda hedef halkası ve sınırsız deneme vardır; maçta tek vuruş hakkı, baskı ve ağır çekim tekrar.
+## Menü ve maç akışı `MatchFlow` içindedir; bu sahneyi `start_practice`, `begin_shot`, `set_idle` ile sürer.
 
-enum Phase { AIM, FLIGHT, RESULT }
+signal shot_finished(scored: bool)
+signal menu_requested
+signal boot_changed
+
+enum Phase { AIM, FLIGHT, RESULT, REPLAY }
 enum Touch { NONE, STRIKE, SWIPE, AFTERTOUCH }
 
 const RESULT_TIME := 2.0
 const MAX_FLIGHT_TIME := 6.0
 const DEFLECTION_TIME := 1.2
+const REPLAY_SPEED := 0.35
+const REPLAY_TAIL := 0.5      ## s, sonuçtan sonra tekrarda gösterilen süre
 const CAMERA_BACK := 4.0
 const CAMERA_HEIGHT := 1.3
 const CAMERA_MIN_Z := 6.0
@@ -26,6 +35,7 @@ const LINE_COLOR := Color(0.9, 0.95, 0.9)
 var _pp := PhysicsParams.load_default()
 var _cp := ControlParams.load_default()
 var _kp := KeeperParams.load_default()
+var _mp := MatchParams.load_default()
 var _sim := BallSimulator.new(_pp)
 var _wall := Wall.new(_kp)
 var _keeper := Keeper.new(_kp)
@@ -51,6 +61,19 @@ var _goals := 0
 var _last_hit := false
 var _launch_text := ""
 var _deflected_for := 0.0
+
+var _active := false          ## false iken sahne girdi almaz (menü ya da maç akışı ekranda)
+var _practice := true
+var _pressure := 0.0
+var _header := ""
+var _wall_count := -1         ## eksi = mesafeye göre
+var _keeper_depth := -1.0     ## eksi = ayarlardaki değer
+var _scored := false
+var _practice_buttons: Array[Control] = []
+var _record: Array = []       ## tekrar için kareler: [süre, top konumu, top yönü, kaleci ayak x, kaleci elleri]
+var _replay_time := 0.0
+var _replay_index := 0
+var _replay_end := 0.0
 
 var _touch := Touch.NONE
 var _touch_index := -1
@@ -87,12 +110,22 @@ func _ready() -> void:
 	button.position = Vector2(16, 12)
 	button.pressed.connect(_new_spot)
 	$UI.add_child(button)
+	_practice_buttons.append(button)
 	var boot_button := Button.new()
 	boot_button.text = "Krampon"
 	boot_button.add_theme_font_size_override("font_size", 22)
 	boot_button.position = Vector2(16, 64)
-	boot_button.pressed.connect(_open_picker)
+	boot_button.pressed.connect(open_picker)
 	$UI.add_child(boot_button)
+	_practice_buttons.append(boot_button)
+	var menu_button := Button.new()
+	menu_button.text = "Menü"
+	menu_button.add_theme_font_size_override("font_size", 22)
+	menu_button.position = Vector2(16, 116)
+	menu_button.pressed.connect(func() -> void: menu_requested.emit())
+	$UI.add_child(menu_button)
+	_practice_buttons.append(menu_button)
+	$UI.add_child(MatchFlow.new(self))
 	_picker = BootPicker.new(_boots)
 	_picker.visible = false
 	_picker.picked.connect(_pick_boot)
@@ -100,11 +133,69 @@ func _ready() -> void:
 	_pick_boot(_boots[0] if not _boots.is_empty() else Boot.neutral(_cp))
 	_place_target()
 	_reset_shot()
+	set_idle()
+
+
+## Antrenman: hedef halkası, rastgele konum, sınırsız deneme.
+func start_practice() -> void:
+	_practice = true
+	_active = true
+	_pressure = 0.0
+	_wall_count = -1
+	_keeper_depth = -1.0
+	_sim.conditions = PitchConditions.new()
+	_last_hit = false
+	_show_practice_ui(true)
+	_reset_shot()
+
+
+## Maçtaki tek vuruş. Bitince (tekrardan sonra) `shot_finished` yayılır.
+func begin_shot(kick: FreeKick, conditions: PitchConditions, pressure: float, header: String,
+		keeper_depth: float) -> void:
+	_practice = false
+	_active = true
+	_pressure = pressure
+	_header = header
+	_spot = Vector3(kick.spot.x, _pp.radius, kick.spot.z)
+	_wall_count = kick.wall_count
+	_keeper_depth = keeper_depth
+	_sim.conditions = conditions
+	_show_practice_ui(false)
+	_reset_shot()
+
+
+## Sahneyi bekletir: girdi almaz, vuruş arayüzü gizlenir.
+func set_idle() -> void:
+	_active = false
+	_touch = Touch.NONE
+	_touch_index = -1
+	_show_practice_ui(false)
+	_hud.show_disc = false
+	_hud.pressure = 0.0
+	_hud.swipe_points = PackedVector2Array()
+	_title.text = ""
+	_info.text = ""
+
+
+func boot() -> Boot:
+	return _boot
+
+
+func _show_practice_ui(shown: bool) -> void:
+	for control in _practice_buttons:
+		control.visible = shown
+	_target_node.visible = shown
 
 
 func _process(delta: float) -> void:
+	if not _active:
+		return
 	_timer += delta
 	match _phase:
+		Phase.AIM:
+			_sway_camera()
+		Phase.REPLAY:
+			_replay(delta)
 		Phase.FLIGHT:
 			_fly(delta)
 			if _aftertouch.is_active(_sim) and _touch == Touch.AFTERTOUCH:
@@ -119,7 +210,10 @@ func _process(delta: float) -> void:
 			if _sim.outcome != BallSimulator.Outcome.SAVED:
 				_fly(delta)
 			if _timer >= RESULT_TIME:
-				_reset_shot()
+				if _practice:
+					_reset_shot()
+				else:
+					_start_replay()
 	# Sonuç belli olunca kamera yerinde kalır.
 	if _phase == Phase.FLIGHT:
 		var target := _camera_position(_sim.state.position)
@@ -128,6 +222,8 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not _active:
+		return
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			_touch_down(event.index, event.position)
@@ -155,7 +251,13 @@ func _touch_down(index: int, at: Vector2) -> void:
 			_touch = Touch.AFTERTOUCH
 		Phase.RESULT:
 			_touch = Touch.NONE
-			_reset_shot()
+			if _practice:
+				_reset_shot()
+			else:
+				_start_replay()
+		Phase.REPLAY:
+			_touch = Touch.NONE
+			_end_match_shot()
 
 
 func _touch_move(at: Vector2) -> void:
@@ -183,9 +285,11 @@ func _shoot() -> void:
 	if not swipe.valid:
 		_info.text = "Daha uzun kaydır"
 		return
-	var noise := Vector2(_rng.randfn(), _rng.randfn()).limit_length(2.5)
+	# Baskı altında kaydırma toleransı daralır: aynı hata daha çok sapma verir.
+	var noise := Vector2(_rng.randfn(), _rng.randfn()).limit_length(2.5) * (1.0 + _pressure * _mp.pressure_scatter)
 	var kick := ShotBuilder.build(swipe, _goal_plane_point(swipe.launch_point), _spot, _hud.strike, _cp, _pp,
-			_boot, noise, false, _assist)
+			_boot, noise, _sim.conditions.wet, _assist)
+	_record.clear()
 	_sim.kick(kick)
 	_aftertouch.begin(kick)
 	_shots += 1
@@ -202,12 +306,14 @@ func _shoot() -> void:
 
 func _finish_shot() -> void:
 	_phase = Phase.RESULT
+	_replay_end = _sim.state.time + REPLAY_TAIL
 	_timer = 0.0
 	var parts: Array[String] = []
 	_last_hit = false
-	if _sim.outcome == BallSimulator.Outcome.GOAL:
+	_scored = _sim.outcome == BallSimulator.Outcome.GOAL
+	if _scored:
 		_goals += 1
-		_last_hit = _sim.line_crossing.distance_to(_target) <= TARGET_RADIUS
+		_last_hit = _practice and _sim.line_crossing.distance_to(_target) <= TARGET_RADIUS
 		parts.append("HEDEF!" if _last_hit else "GOL")
 	elif _sim.hit_keeper:
 		parts.append("KALECİ KURTARDI")
@@ -235,10 +341,10 @@ func _reset_shot() -> void:
 	var rest := BallState.new()
 	rest.position = _spot
 	_sim.kick(rest)
-	_wall.place(_spot, Wall.default_count(_spot))
-	_keeper.reset(-_wall.near_post_sign * _kp.start_offset, _rng.randf_range(-1.0, 1.0))
+	_wall.place(_spot, _wall_count if _wall_count > 0 else Wall.default_count(_spot))
+	_keeper.reset(-_wall.near_post_sign * _kp.start_offset, _rng.randf_range(-1.0, 1.0), _keeper_depth)
 	_place_wall_nodes()
-	_show_defenders()
+	_show_defenders(0.0)
 	_phase = Phase.AIM
 	_timer = 0.0
 	_deflected_for = 0.0
@@ -249,13 +355,24 @@ func _reset_shot() -> void:
 	_camera.position = _camera_position(_spot)
 	_camera.look_at(LOOK_AT)
 	_hud.show_disc = true
-	_info.text = "%d m · vuruş noktasını soldan seç, kaleye doğru kaydır" % roundi(_spot.distance_to(Vector3.ZERO))
+	_hud.pressure = _pressure
+	var distance := roundi(Vector2(_spot.x, _spot.z).length())
+	if _practice:
+		_info.text = "%d m · vuruş noktasını soldan seç, kaleye doğru kaydır" % distance
+	else:
+		var notes: Array[String] = ["%d m" % distance, "tek vuruş hakkın var"]
+		var wind := _wind_text()
+		if not wind.is_empty():
+			notes.append(wind)
+		if _sim.conditions.wet:
+			notes.append("ıslak saha")
+		_info.text = " · ".join(notes)
 	_update_title()
 
 
-## Krampon yalnızca vuruştan önce değiştirilebilir.
-func _open_picker() -> void:
-	if _phase != Phase.AIM or _touch != Touch.NONE:
+## Krampon yalnızca vuruştan önce değiştirilebilir; maçta pozisyon çıkınca değiştirilemez.
+func open_picker() -> void:
+	if _phase != Phase.AIM or _touch != Touch.NONE or (_active and not _practice):
 		return
 	_picker.select(_boot)
 	_picker.visible = true
@@ -266,6 +383,7 @@ func _pick_boot(boot: Boot) -> void:
 	_aftertouch.limit = boot.aftertouch
 	_hud.boot = boot
 	_picker.visible = false
+	boot_changed.emit()
 
 
 func _new_spot() -> void:
@@ -284,12 +402,79 @@ func _place_target() -> void:
 
 
 func _update_title() -> void:
-	_title.text = "Gol: %d · Hedef: %d · Vuruş: %d" % [_goals, _hits, _shots]
+	if _practice:
+		_title.text = "Gol: %d · Hedef: %d · Vuruş: %d" % [_goals, _hits, _shots]
+	else:
+		_title.text = _header
+
+
+## Rüzgarın vurucuya göre yönü: "rüzgar 22 km/sa soldan sağa".
+func _wind_text() -> String:
+	var wind := _sim.conditions.wind
+	if wind.length() < 0.5:
+		return ""
+	var forward := (-Vector3(_spot.x, 0.0, _spot.z)).normalized()
+	var right := forward.cross(Vector3.UP)
+	var across := wind.dot(right)
+	var along := wind.dot(forward)
+	var direction := ""
+	if absf(across) >= absf(along):
+		direction = "soldan sağa" if across > 0.0 else "sağdan sola"
+	else:
+		direction = "arkadan" if along > 0.0 else "karşıdan"
+	return "rüzgar %d km/sa %s" % [roundi(wind.length() * 3.6), direction]
+
+
+## Baskı altında nişan hafifçe titrer.
+func _sway_camera() -> void:
+	_camera.look_at(LOOK_AT)
+	if _pressure <= 0.0:
+		return
+	var amount := deg_to_rad(_mp.pressure_sway) * _pressure
+	_camera.rotate_object_local(Vector3.UP, amount * (sin(_timer * 1.7) + 0.5 * sin(_timer * 3.1)))
+	_camera.rotate_object_local(Vector3.RIGHT, amount * 0.6 * (cos(_timer * 2.3) + 0.5 * sin(_timer * 4.3)))
+
+
+func _start_replay() -> void:
+	if _record.size() < 2:
+		_end_match_shot()
+		return
+	_phase = Phase.REPLAY
+	_replay_time = _record[0][0]
+	_replay_index = 0
+	_trail_points.clear()
+	_trail.clear_surfaces()
+	# Barajın kapatmadığı taraftan, kaleye yakın bir açı.
+	_camera.position = Vector3(-_wall.near_post_sign * 7.5, 2.0, 7.0)
+	_camera.look_at(Vector3(0.0, 1.1, -0.5))
+	_info.text = "TEKRAR · " + _info.text
+
+
+func _replay(delta: float) -> void:
+	_replay_time += delta * REPLAY_SPEED
+	while _replay_index < _record.size() - 1 and _record[_replay_index + 1][0] <= _replay_time:
+		_replay_index += 1
+	var frame: Array = _record[_replay_index]
+	_ball.position = frame[1]
+	_ball.basis = frame[2]
+	_keeper.feet_x = frame[3]
+	_keeper.hands = frame[4]
+	_show_defenders(frame[0])
+	if _trail_points.is_empty() or _trail_points[-1].distance_to(_ball.position) > 0.05:
+		_trail_points.append(_ball.position)
+		_draw_trail()
+	if _replay_time >= minf(_record[-1][0], _replay_end):
+		_end_match_shot()
+
+
+func _end_match_shot() -> void:
+	set_idle()
+	shot_finished.emit(_scored)
 
 
 func _fly(delta: float) -> void:
 	_sim.advance(delta)
-	_show_defenders()
+	_show_defenders(_sim.state.time)
 	_ball.position = _sim.state.position
 	var spin := _sim.state.spin
 	var rate := spin.length()
@@ -298,6 +483,8 @@ func _fly(delta: float) -> void:
 	if _trail_points.is_empty() or _trail_points[-1].distance_to(_ball.position) > 0.05:
 		_trail_points.append(_ball.position)
 		_draw_trail()
+	if not _practice:
+		_record.append([_sim.state.time, _ball.position, _ball.basis, _keeper.feet_x, _keeper.hands])
 
 
 func _draw_trail() -> void:
@@ -397,8 +584,8 @@ func _place_wall_nodes() -> void:
 
 
 ## Barajı ve kaleciyi benzetimdeki durumlarına göre çizer.
-func _show_defenders() -> void:
-	var lift := _wall.jump_offset(_sim.state.time) if _phase != Phase.AIM else 0.0
+func _show_defenders(time: float) -> void:
+	var lift := _wall.jump_offset(time) if _phase != Phase.AIM else 0.0
 	for i in _wall_nodes.size():
 		_wall_nodes[i].position = _wall.centres[i] + Vector3.UP * (lift + _kp.wall_player_height / 2.0)
 	var segment := _keeper.body_segment()
@@ -406,7 +593,7 @@ func _show_defenders() -> void:
 	_keeper_body.position = (segment[0] + segment[1]) * 0.5
 	_keeper_body.basis = Basis(Quaternion(Vector3.UP, along.normalized()))
 	_keeper_body.scale = Vector3(1.0, (along.length() + 2.0 * _kp.body_radius) / _kp.body_length, 1.0)
-	_keeper_hands.position = Vector3(_keeper.hands.x, _keeper.hands.y, _kp.depth)
+	_keeper_hands.position = Vector3(_keeper.hands.x, _keeper.hands.y, _keeper.depth)
 
 
 func _build_goal() -> void:
