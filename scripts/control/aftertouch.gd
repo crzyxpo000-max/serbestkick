@@ -24,7 +24,7 @@ func factor() -> float:
 func is_active(sim: BallSimulator) -> bool:
 	if _cp.aftertouch_enabled <= 0.0 or sim.outcome != BallSimulator.Outcome.NONE:
 		return false
-	if sim.bounces > 0 or sim.hit_post or sim.grounded:
+	if sim.bounces > 0 or sim.hit_post or sim.hit_wall or sim.hit_keeper or sim.grounded:
 		return false
 	return sim.state.position.z > _start_distance * (1.0 - _cp.aftertouch_window)
 

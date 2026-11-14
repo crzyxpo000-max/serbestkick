@@ -3,7 +3,7 @@ extends RefCounted
 ## Bir vuruşun tamamını benzetir: uçuş, sekme, yuvarlanma, direk, file ve sonuç.
 ## Sahneden bağımsızdır; testler ve oyun aynı sınıfı kullanır.
 
-enum Outcome { NONE, GOAL, OUT, STOPPED }
+enum Outcome { NONE, GOAL, OUT, STOPPED, SAVED }
 
 var params: PhysicsParams
 var conditions: PitchConditions
@@ -11,6 +11,10 @@ var state: BallState
 
 var outcome := Outcome.NONE
 var hit_post := false
+var hit_wall := false
+var hit_keeper := false
+var wall: Wall                       ## isteğe bağlı baraj
+var keeper: Keeper                   ## isteğe bağlı kaleci
 var bounces := 0                     ## sonuçtan önceki yer sekmeleri
 var grounded := false                ## top yerde yuvarlanıyor
 var resting := false                 ## top durdu
@@ -33,6 +37,8 @@ func kick(initial: BallState) -> void:
 	state = initial.duplicate_state()
 	outcome = Outcome.NONE
 	hit_post = false
+	hit_wall = false
+	hit_keeper = false
 	bounces = 0
 	grounded = false
 	resting = false
@@ -72,6 +78,16 @@ func step() -> void:
 	if outcome == Outcome.GOAL:
 		_hold_in_net(dt)
 	else:
+		if wall != null and outcome == Outcome.NONE and wall.collide(state, params.radius):
+			hit_wall = true
+		if keeper != null and outcome == Outcome.NONE:
+			keeper.update(self, dt)
+			if keeper.collide(self):
+				hit_keeper = true
+				if keeper.holding:
+					outcome = Outcome.SAVED
+					resting = true
+					return
 		_collide_frame()
 		_check_goal_line(previous)
 	_collide_ground()

@@ -9,8 +9,10 @@ Android için 3D, gerçekçi görünümlü serbest vuruş oyunu. Motor Godot 4.6
 - **Aşama 1 (top fiziği) tamam:** `scripts/physics/` (uçuş, sekme, yuvarlanma, direk, file, gol kararı) ve testleri.
 - **Aşama 2 (kontrol) tamam:** `scripts/control/` (kaydırma ölçümü, vuruş kurulumu, vuruş noktası, dönüşsüz vuruş,
   havada falso) ve testleri. Ana sahne gri kutulu antrenman sahasıdır: hedef halkası, rastgele konum, isabet sayacı.
-- Sıradaki: Aşama 3, his ayarı (güç, falso, tolerans değerleri). Bilgisayarda, editörde yapılması planlandı;
-  değerler `data/physics.json` ve `data/controls.json` içinde.
+- **Aşama 3 (his ayarı):** kullanıcının telefon geri bildirimiyle güç, falso ve nişan değerleri ayarlandı ("şimdi iyi").
+- **Aşama 4 (kaleci ve baraj) tamam:** `scripts/keeper/` ve testleri. Antrenman sahasında baraj (mesafeye göre 2–5 kişi)
+  ve kaleci var. Kullanıcının telefonda denemesi bekleniyor.
+- Sıradaki: Aşama 5, krampon (dört özellik, dört tip, seçim ekranı). Değerler `data/` altında durmalı.
 
 ## Komutlar
 
@@ -49,6 +51,17 @@ düzlemini nerede kesiyorsa falsosuz top oraya gider. Yay sağa bombeliyse top s
 noktası: alt = alt falso ve ek yükseliş, üst = üst falso, sağ = sola kıvrılır, tam orta = en sert ve dönüşsüz
 (yalpalar). Girdi `scripts/main.gd` içinde `InputEventScreenTouch/Drag` ile işlenir (fare dokunmaya çevrilir);
 çizimler `scripts/ui/practice_hud.gd`. Ekran koordinatları görünüm alanı birimindedir (720 yükseklik).
+
+## Kaleci ve baraj (`scripts/keeper/`)
+
+| Dosya | İçerik |
+| --- | --- |
+| `keeper_params.gd` | Kaleci ve baraj ayarları; üzerine `data/keeper.json` yazılır |
+| `wall.gd` | Baraj: toptan 9,15 m, yakın direği kapatır, vuruşla zıplar; kutu çarpışması |
+| `keeper.gd` | Kaleci: tepki süresi, tahmin (falsonun `spin_read` kadarını okur), ellerin hız ve erişim sınırı, tutma/çelme |
+
+`BallSimulator.wall` ve `.keeper` isteğe bağlıdır; `hit_wall`, `hit_keeper` ve `Outcome.SAVED` (kaleci tuttu) sonuçları
+verir. Kaleci gövdesi ayaklardan ellere uzanan kapsüldür ve çizginin `depth` kadar önünde durur.
 
 Eksenler: kale çizgisi z = 0, kale ortası x = 0, vuruş +z'den -z'ye, +x vurucunun sağı. Yan falso artı = sağa
 kıvrılır; üst falso artı = top dalar. Vector3 tek duyarlıklıdır: testlerde 1e-6'dan sıkı tolerans kullanma.

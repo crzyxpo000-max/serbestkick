@@ -1,11 +1,12 @@
 extends Node3D
-## Aşama 2: gri kutulu antrenman sahası. Vuruş noktasını seç, kaleye doğru kaydır, hedefi vur.
+## Gri kutulu antrenman sahası: vuruş noktasını seç, kaleye doğru kaydır; barajı aş, kaleciyi geç, hedefi vur.
 
 enum Phase { AIM, FLIGHT, RESULT }
 enum Touch { NONE, STRIKE, SWIPE, AFTERTOUCH }
 
 const RESULT_TIME := 2.0
 const MAX_FLIGHT_TIME := 6.0
+const DEFLECTION_TIME := 1.2
 const CAMERA_BACK := 4.0
 const CAMERA_HEIGHT := 1.3
 const CAMERA_MIN_Z := 6.0
@@ -24,7 +25,13 @@ const LINE_COLOR := Color(0.9, 0.95, 0.9)
 
 var _pp := PhysicsParams.load_default()
 var _cp := ControlParams.load_default()
+var _kp := KeeperParams.load_default()
 var _sim := BallSimulator.new(_pp)
+var _wall := Wall.new(_kp)
+var _keeper := Keeper.new(_kp)
+var _wall_nodes: Array[MeshInstance3D] = []
+var _keeper_body: MeshInstance3D
+var _keeper_hands: MeshInstance3D
 var _aftertouch := Aftertouch.new(_cp)
 var _rng := RandomNumberGenerator.new()
 var _hud: PracticeHud
@@ -36,8 +43,10 @@ var _spot := Vector3(0.0, 0.11, 25.0)
 var _target := TARGETS[0]
 var _shots := 0
 var _hits := 0
+var _goals := 0
 var _last_hit := false
 var _launch_text := ""
+var _deflected_for := 0.0
 
 var _touch := Touch.NONE
 var _touch_index := -1
@@ -56,6 +65,9 @@ func _ready() -> void:
 	_build_goal()
 	_build_lines()
 	_build_target()
+	_build_keeper()
+	_sim.wall = _wall
+	_sim.keeper = _keeper
 	_trail_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_trail_material.albedo_color = Color(1.0, 0.85, 0.2)
 	var trail_node := MeshInstance3D.new()
@@ -81,10 +93,15 @@ func _process(delta: float) -> void:
 			_fly(delta)
 			if _aftertouch.is_active(_sim) and _touch == Touch.AFTERTOUCH:
 				_info.text = "%s · havada falso %+d%%" % [_launch_text, roundi((_aftertouch.factor() - 1.0) * 100.0)]
-			if _sim.outcome != BallSimulator.Outcome.NONE or _sim.state.time > MAX_FLIGHT_TIME:
+			# Baraj, kaleci ya da direkten dönen top için sonucu çok bekletme.
+			if _sim.hit_wall or _sim.hit_keeper or _sim.hit_post:
+				_deflected_for += delta
+			if _sim.outcome != BallSimulator.Outcome.NONE or _sim.state.time > MAX_FLIGHT_TIME \
+					or _deflected_for > DEFLECTION_TIME:
 				_finish_shot()
 		Phase.RESULT:
-			_fly(delta)
+			if _sim.outcome != BallSimulator.Outcome.SAVED:
+				_fly(delta)
 			if _timer >= RESULT_TIME:
 				_reset_shot()
 	# Sonuç belli olunca kamera yerinde kalır.
@@ -170,14 +187,18 @@ func _finish_shot() -> void:
 	_timer = 0.0
 	var parts: Array[String] = []
 	_last_hit = false
-	match _sim.outcome:
-		BallSimulator.Outcome.GOAL:
-			_last_hit = _sim.line_crossing.distance_to(_target) <= TARGET_RADIUS
-			parts.append("HEDEF!" if _last_hit else "GOL")
-		BallSimulator.Outcome.OUT:
-			parts.append("AUT")
-		_:
-			parts.append("KAÇTI")
+	if _sim.outcome == BallSimulator.Outcome.GOAL:
+		_goals += 1
+		_last_hit = _sim.line_crossing.distance_to(_target) <= TARGET_RADIUS
+		parts.append("HEDEF!" if _last_hit else "GOL")
+	elif _sim.hit_keeper:
+		parts.append("KALECİ KURTARDI")
+	elif _sim.hit_wall:
+		parts.append("BARAJ")
+	elif _sim.outcome == BallSimulator.Outcome.OUT:
+		parts.append("AUT")
+	else:
+		parts.append("KAÇTI")
 	if _last_hit:
 		_hits += 1
 	if _sim.hit_post:
@@ -196,8 +217,13 @@ func _reset_shot() -> void:
 	var rest := BallState.new()
 	rest.position = _spot
 	_sim.kick(rest)
+	_wall.place(_spot, Wall.default_count(_spot))
+	_keeper.reset(-_wall.near_post_sign * _kp.start_offset, _rng.randf_range(-1.0, 1.0))
+	_place_wall_nodes()
+	_show_defenders()
 	_phase = Phase.AIM
 	_timer = 0.0
+	_deflected_for = 0.0
 	_trail_points.clear()
 	_trail.clear_surfaces()
 	_ball.position = _spot
@@ -225,11 +251,12 @@ func _place_target() -> void:
 
 
 func _update_title() -> void:
-	_title.text = "Hedef: %d / %d vuruş" % [_hits, _shots]
+	_title.text = "Gol: %d · Hedef: %d · Vuruş: %d" % [_goals, _hits, _shots]
 
 
 func _fly(delta: float) -> void:
 	_sim.advance(delta)
+	_show_defenders()
 	_ball.position = _sim.state.position
 	var spin := _sim.state.spin
 	var rate := spin.length()
@@ -294,6 +321,59 @@ func _build_target() -> void:
 	_target_node.material_override = material
 	_target_node.rotation.x = PI / 2.0
 	add_child(_target_node)
+
+
+func _build_keeper() -> void:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.95, 0.75, 0.1)
+	var body := CapsuleMesh.new()
+	body.radius = _kp.body_radius
+	body.height = _kp.body_length
+	_keeper_body = MeshInstance3D.new()
+	_keeper_body.name = "Keeper"
+	_keeper_body.mesh = body
+	_keeper_body.material_override = material
+	add_child(_keeper_body)
+	var glove_material := StandardMaterial3D.new()
+	glove_material.albedo_color = Color(0.95, 0.95, 0.95)
+	var glove := SphereMesh.new()
+	glove.radius = 0.16
+	glove.height = 0.32
+	_keeper_hands = MeshInstance3D.new()
+	_keeper_hands.mesh = glove
+	_keeper_hands.material_override = glove_material
+	add_child(_keeper_hands)
+
+
+## Baraj oyuncularını (kutular) yerleştirir; sayı değiştiyse yeniden kurar.
+func _place_wall_nodes() -> void:
+	while _wall_nodes.size() > _wall.centres.size():
+		_wall_nodes.pop_back().queue_free()
+	while _wall_nodes.size() < _wall.centres.size():
+		var material := StandardMaterial3D.new()
+		material.albedo_color = Color(0.2, 0.3, 0.75)
+		var mesh := BoxMesh.new()
+		mesh.size = Vector3(_kp.wall_player_width * 0.92, _kp.wall_player_height, _kp.wall_player_depth)
+		var node := MeshInstance3D.new()
+		node.mesh = mesh
+		node.material_override = material
+		add_child(node)
+		_wall_nodes.append(node)
+	for node in _wall_nodes:
+		node.basis = Basis(_wall.axis, Vector3.UP, _wall.facing)
+
+
+## Barajı ve kaleciyi benzetimdeki durumlarına göre çizer.
+func _show_defenders() -> void:
+	var lift := _wall.jump_offset(_sim.state.time) if _phase != Phase.AIM else 0.0
+	for i in _wall_nodes.size():
+		_wall_nodes[i].position = _wall.centres[i] + Vector3.UP * (lift + _kp.wall_player_height / 2.0)
+	var segment := _keeper.body_segment()
+	var along := segment[1] - segment[0]
+	_keeper_body.position = (segment[0] + segment[1]) * 0.5
+	_keeper_body.basis = Basis(Quaternion(Vector3.UP, along.normalized()))
+	_keeper_body.scale = Vector3(1.0, (along.length() + 2.0 * _kp.body_radius) / _kp.body_length, 1.0)
+	_keeper_hands.position = Vector3(_keeper.hands.x, _keeper.hands.y, _kp.depth)
 
 
 func _build_goal() -> void:
