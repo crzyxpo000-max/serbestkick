@@ -55,6 +55,8 @@ static func analyze(points: PackedVector2Array, times: PackedFloat64Array, scree
 			if early.length() > 1e-6:
 				tangent = early.normalized()
 			break
+	if absf(swipe.curvature) < cp.curvature_dead_zone:
+		tangent = direction
 	swipe.launch_point = swipe.start + tangent * chord_length
 	swipe.valid = true
 	return swipe

@@ -23,7 +23,8 @@ static func build(swipe: Swipe, target: Vector2, ball_position: Vector3, strike:
 	elevation = clampf(elevation - hit.y * cp.strike_elevation, 0.0, MAX_ELEVATION + cp.strike_elevation)
 
 	# Sağa bombeli yay: top sağa çıkar, sola kıvrılır. Topun sağına vurmak da sola kıvırır.
-	var curve := clampf(swipe.curvature / cp.curvature_full, -1.0, 1.0)
+	var bend := maxf(absf(swipe.curvature) - cp.curvature_dead_zone, 0.0)
+	var curve := signf(swipe.curvature) * clampf(bend / (cp.curvature_full - cp.curvature_dead_zone), 0.0, 1.0)
 	var swipe_spin := -curve * cp.max_side_spin
 	var side_spin := clampf(swipe_spin - hit.x * cp.strike_side_spin, -cp.max_side_spin, cp.max_side_spin)
 	var top_spin := hit.y * cp.strike_top_spin

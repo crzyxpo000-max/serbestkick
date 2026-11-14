@@ -7,15 +7,16 @@ const DATA_PATH := "res://data/controls.json"
 
 var min_swipe_length := 0.08   ## ekran yüksekliği; daha kısa kaydırma vuruş sayılmaz
 var swipe_window := 0.5        ## s; kaydırmanın yalnızca son bu kadarı değerlendirilir
-var slow_swipe := 0.8          ## ekran yüksekliği/s → en düşük güç
-var fast_swipe := 3.0          ## ekran yüksekliği/s → en yüksek güç
-var min_speed := 16.0          ## m/s
+var slow_swipe := 0.6          ## ekran yüksekliği/s → en düşük güç
+var fast_swipe := 4.5          ## ekran yüksekliği/s → en yüksek güç
+var min_speed := 20.0          ## m/s
 var max_speed := 32.0          ## m/s
-var max_side_spin := 10.0      ## tur/sn
-var curvature_full := 0.25     ## yayın sapması / kiriş; bu eğrilik en yüksek falsoyu verir
-var tangent_fraction := 0.3    ## çıkış yönü kaydırmanın ilk bu kadarından okunur
+var max_side_spin := 8.0       ## tur/sn
+var curvature_full := 0.4      ## yayın sapması / kiriş; bu eğrilik en yüksek falsoyu verir
+var curvature_dead_zone := 0.04  ## bundan küçük eğrilik düz kaydırma sayılır (el titremesi)
+var tangent_fraction := 0.5    ## çıkış yönü kaydırmanın ilk bu kadarından okunur
 
-var strike_side_spin := 5.0    ## tur/sn, vuruş noktası tam kenardayken
+var strike_side_spin := 3.5    ## tur/sn, vuruş noktası tam kenardayken
 var strike_top_spin := 6.0     ## tur/sn, vuruş noktası tam üstte/altta
 var strike_elevation := 6.0    ## derece, vuruş noktası tam alttayken ek yükseliş
 var strike_power_loss := 0.2   ## kenardan vuruşta güç kaybı oranı
