@@ -32,6 +32,7 @@ Android için 3D, gerçekçi görünümlü serbest vuruş oyunu. Motor Godot 4.6
 ```bash
 godot --headless --path . --import                              # ilk açılışta ve yeni dosyadan sonra
 godot --headless --path . --script res://tests/run_tests.gd     # testler (çıkış kodu 0 = geçti)
+godot --headless --path . --script res://tests/run_flow.gd      # ekran akışı: menü, kariyer, maç, mağaza, sezon sonu
 godot --headless --path . --export-release Web build/web/index.html
 ```
 

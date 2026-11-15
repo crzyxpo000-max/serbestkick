@@ -72,6 +72,11 @@ jobs:
       - name: Testler
         run: godot --headless --path . --script res://tests/run_tests.gd
 
+      - name: Akış testi (ekranlar)
+        run: |
+          godot --headless --path . --script res://tests/run_flow.gd 2>&1 | tee flow.log
+          ! grep -q "SCRIPT ERROR" flow.log
+
       - name: Web çıktısı
         run: |
           mkdir -p build/web
